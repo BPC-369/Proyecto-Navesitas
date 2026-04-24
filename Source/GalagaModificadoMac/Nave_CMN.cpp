@@ -30,7 +30,7 @@ ANave_CMN::ANave_CMN()
 
 void ANave_CMN::BeginPlay()
 {
-	//Super::BeginPlay();
+	Super::BeginPlay();
 
 	// Iniciamos el ciclo de disparo automático en cuanto la nave nace en el nivel
 	GetWorld()->GetTimerManager().SetTimer(TemporizadorAtaque, this, &ANave_CMN::Atacar, FrecuenciaAtaque, true);
