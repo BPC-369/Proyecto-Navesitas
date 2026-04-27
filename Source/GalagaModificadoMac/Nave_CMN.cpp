@@ -70,6 +70,6 @@ void ANave_CMN::Atacar()
 		SpawnParams.Owner = this;
 
 		// Le pasamos SpawnParams al final para que la bala nazca sabiendo quién es su padre.
-		//World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparo, RotacionDisparo, SpawnParams);
+		World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparo, RotacionDisparo, SpawnParams);
 	}
 }
