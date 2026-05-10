@@ -31,20 +31,13 @@ AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 
 void AGalagaModificadoMacProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// si el actor con el que chocamos existe, no es esta bala y no nos chocamos con nosotros mismos, entonces aplicamos dano y fisicas
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
 	{
-		// 2. EL SISTEMA NATIVO: Ahora sí, le aplicamos daño a todo lo que la bala toque.
-		// Tu EntidadCombate recibirá este llamado y ejecutará tu lógica perfecta.
+		// Aplicamos daño al actor que tocamos (tu jugador)
 		UGameplayStatics::ApplyDamage(OtherActor, DanoProyectil, nullptr, this, UDamageType::StaticClass());
 
-		// 3. Físicas para objetos inertes: El empujón se queda aislado aquí adentro.
-		if (OtherComp->IsSimulatingPhysics())
-		{
-			OtherComp->AddImpulseAtLocation(GetVelocity() * 20.0f, GetActorLocation());
-		}
+		// Log para confirmar que la bala golpeó algo
+		UE_LOG(LogTemp, Warning, TEXT("Bala impacto en: %s"), *OtherActor->GetName());
 	}
-
-	// zLa bala se destruye
 	Destroy();
 }

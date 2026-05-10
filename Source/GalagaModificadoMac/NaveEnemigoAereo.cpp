@@ -22,6 +22,7 @@ ANaveEnemigoAereo::ANaveEnemigoAereo()
     MallaEnemiga->SetNotifyRigidBodyCollision(true);
     // 2. Lo convertimos en un muro sólido que bloquee todo
     MallaEnemiga->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+
 }
 /*
 void ANaveEnemigoAereo::BeginPlay()

@@ -13,6 +13,9 @@ class AGalagaModificadoMacGameMode : public AGameModeBase
 
 public:
 	AGalagaModificadoMacGameMode();
+protected:
+	// Sobrescribimos el BeginPlay para que ocurra al darle "Play"
+	virtual void BeginPlay() override;
 };
 
 

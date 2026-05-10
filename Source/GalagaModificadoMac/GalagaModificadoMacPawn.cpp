@@ -74,7 +74,6 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	ConvertirEnNave();
 	EstadoActual = new FEstadoNaveVoladora();
-
 	Faccion = FName("Jugador");
 }
 
