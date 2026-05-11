@@ -17,7 +17,7 @@ ANaveEnemigoAereo::ANaveEnemigoAereo()
     bTieneEscudo = false;
 
     MallaEnemiga = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaEnemiga"));
-    RootComponent = MallaEnemiga;
+    MallaEnemiga->SetupAttachment(RootComponent);
     // 1. Obligamos al enemigo a generar el evento de impacto
     MallaEnemiga->SetNotifyRigidBodyCollision(true);
     // 2. Lo convertimos en un muro sólido que bloquee todo
