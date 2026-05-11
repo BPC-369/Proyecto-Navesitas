@@ -31,7 +31,7 @@ AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 
 void AGalagaModificadoMacProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr))
+	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && (OtherActor != GetOwner()))
 	{
 		// Aplicamos daño al actor que tocamos (tu jugador)
 		UGameplayStatics::ApplyDamage(OtherActor, DanoProyectil, nullptr, this, UDamageType::StaticClass());

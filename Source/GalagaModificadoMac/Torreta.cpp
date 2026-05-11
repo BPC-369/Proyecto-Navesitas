@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Torreta.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/SphereComponent.h"
@@ -8,33 +5,44 @@
 #include "TimerManager.h"
 #include "GalagaModificadoMacProjectile.h"
 #include "UObject/ConstructorHelpers.h"
+#include "ComponenteCombate.h"
+#include "GameFramework/CharacterMovementComponent.h" // Necesario para inmovilizarla
 
 ATorreta::ATorreta()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 1. Creación de componentes sin exposición a Blueprints
-	MallaBase = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaBase"));
-	RootComponent = MallaBase;
+	// 1. CUMPLIENDO EL DISEÑO: Como hereda de Character, la inmovilizamos para que sea una torreta estática.
+	if (GetCharacterMovement() != nullptr)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = 0.0f;
+	}
 
+	// 2. ARREGLO VITAL: ¡Construir los componentes ANTES de usarlos!
 	MallaCanion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaCanion"));
-	MallaCanion->SetupAttachment(MallaBase);
+	MallaCanion->SetupAttachment(MallaEnemiga); // Enganchamos el cañón a la base
 
 	RangoDeteccion = CreateDefaultSubobject<USphereComponent>(TEXT("RangoDeteccion"));
 	RangoDeteccion->SetupAttachment(RootComponent);
 
-	// Configuración inicial de atributos 
+	// Ahora sí podemos cambiar el radio sin crashear
 	RangoDeteccion->SetSphereRadius(1200.0f);
 	CadenciaAtaque = 1.0f;
-	DistanciaParaAcelerar = 600.0f; // Si estás a menos de esto, se vuelve loca 
+	DistanciaParaAcelerar = 600.0f;
 
-	// Carga de malla por código (puedes usar un cilindro del motor)
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("/Engine/BasicShapes/Cylinder.Cylinder"));
-	if (MeshAsset.Succeeded())
+	// 3. Ajuste de Vida (Vida moderada según tu diseño)
+	if (ComponenteCombate != nullptr)
 	{
-		MallaBase->SetStaticMesh(MeshAsset.Object);
-		MallaCanion->SetStaticMesh(MeshAsset.Object);
-		MallaCanion->SetRelativeScale3D(FVector(0.5f, 0.5f, 2.0f)); // Cañón largo
+		ComponenteCombate->VidaMaxima = 150.0f;
+		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+		ComponenteCombate->Faccion = FName("Enemigo");
+	}
+
+	// Cargamos el cilindro nativo de Unreal como base
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaBase(TEXT("StaticMesh'/Engine/BasicShapes/Cylinder.Cylinder'"));
+	if (FormaBase.Succeeded() && MallaEnemiga != nullptr)
+	{
+		MallaEnemiga->SetStaticMesh(FormaBase.Object);
 	}
 }
 
@@ -43,7 +51,6 @@ void ATorreta::BeginPlay()
 	Super::BeginPlay();
 	JugadorObjetivo = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
 
-	// Iniciamos el ciclo de disparo básico
 	GetWorldTimerManager().SetTimer(TimerDisparo, this, &ATorreta::Atacar, CadenciaAtaque, true);
 }
 
@@ -53,17 +60,19 @@ void ATorreta::Tick(float DeltaTime)
 
 	if (JugadorObjetivo && RangoDeteccion->IsOverlappingActor(JugadorObjetivo))
 	{
-		// Rotación suave hacia el jugador
+		// Rotación suave exclusiva del CAÑÓN hacia el jugador
 		FVector Direccion = JugadorObjetivo->GetActorLocation() - MallaCanion->GetComponentLocation();
 		FRotator NuevaRotacion = Direccion.Rotation();
+
+		// TRUCO OPCIONAL: Si no quieres que el cañón mire hacia arriba/abajo, descomenta estas líneas:
+		// NuevaRotacion.Pitch = 0.0f; 
+		// NuevaRotacion.Roll = 0.0f;
+
 		MallaCanion->SetWorldRotation(FMath::RInterpTo(MallaCanion->GetComponentRotation(), NuevaRotacion, DeltaTime, 5.0f));
 
 		float DistanciaActual = FVector::Dist(GetActorLocation(), JugadorObjetivo->GetActorLocation());
-
-		// Solo cambiamos el timer si la cadencia actual es diferente a la necesaria
 		float NuevaCadencia = (DistanciaActual < DistanciaParaAcelerar) ? 0.5f : CadenciaAtaque;
 
-		// Comprobamos si el timer ya tiene la cadencia correcta para no resetearlo cada frame
 		if (!GetWorldTimerManager().IsTimerActive(TimerDisparo) || GetWorldTimerManager().GetTimerRate(TimerDisparo) != NuevaCadencia)
 		{
 			GetWorldTimerManager().SetTimer(TimerDisparo, this, &ATorreta::Atacar, NuevaCadencia, true);
@@ -73,50 +82,34 @@ void ATorreta::Tick(float DeltaTime)
 
 void ATorreta::Atacar()
 {
-	// Solo disparamos si el jugador está vivo y en el rango [cite: 49]
 	if (JugadorObjetivo && RangoDeteccion->IsOverlappingActor(JugadorObjetivo))
 	{
-		// 1. Calculamos el punto de salida (fuera de la colisión de la torreta)
-		FVector SpawnLoc = MallaCanion->GetComponentLocation() + (MallaCanion->GetForwardVector() * 200.0f);
+		// 1. AUMENTAMOS EL OFFSET: Como la bala es gigante (5x), 200.0f no alcanza. 
+		// Lo subimos a 400.0f o 500.0f para que nazca bien afuera de la torreta.
+		FVector SpawnLoc = MallaCanion->GetComponentLocation() + (MallaCanion->GetForwardVector() * 500.0f);
 		FRotator SpawnRot = MallaCanion->GetComponentRotation();
 
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this;
+		SpawnParams.Owner = this; // ¡VITAL! Declaramos a la Torreta como "dueña" de la bala
 		SpawnParams.Instigator = GetInstigator();
-		// Forzamos el spawn aunque haya algo cerca
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		if (GetWorld())
 		{
-			// Spawneamos usando la clase exacta de tu proyecto
 			AActor* Proyectil = GetWorld()->SpawnActor<AGalagaModificadoMacProjectile>(AGalagaModificadoMacProjectile::StaticClass(), SpawnLoc, SpawnRot, SpawnParams);
 
 			if (Proyectil)
 			{
-				// CONTROL VISUAL: Hacemos la bala 5 veces más grande para verla
 				Proyectil->SetActorScale3D(FVector(5.0f, 5.0f, 5.0f));
 
-				// CONTROL DE VELOCIDAD: Si quieres que vaya más lento para ver el trayecto
-				// Castamos al proyectil para acceder a su movimiento si es necesario
-				UE_LOG(LogTemp, Warning, TEXT("!!! TORRETA DISPARÓ UNA BALA GIGANTE !!!"));
+				// 2. EL SEGURO DE VIDA: Forzamos a la raíz de la bala a ignorar a la torreta físicamente
+				UPrimitiveComponent* ColisionBala = Cast<UPrimitiveComponent>(Proyectil->GetRootComponent());
+				if (ColisionBala)
+				{
+					// La bala atravesará a la torreta en caso de que choquen accidentalmente
+					ColisionBala->IgnoreActorWhenMoving(this, true);
+				}
 			}
 		}
 	}
-}
-float ATorreta::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
-{
-	VidaTorreta -= DamageAmount;
-	UE_LOG(LogTemp, Warning, TEXT("Torreta impactada! Vida restante: %f"), VidaTorreta);
-
-	if (VidaTorreta <= 0)
-	{
-		UE_LOG(LogTemp, Error, TEXT("Torreta Destruida!"));
-
-		// Limpiamos el Timer para que no intente disparar después de muerta
-		GetWorldTimerManager().ClearTimer(TimerDisparo);
-
-		Destroy(); // Se elimina del mundo
-	}
-
-	return DamageAmount;
 }

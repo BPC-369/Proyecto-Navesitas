@@ -12,6 +12,7 @@
 #include "Engine/StaticMesh.h"
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
+#include "ComponenteCombate.h"
 
 const FName AGalagaModificadoMacPawn::MoveForwardBinding("MoveForward");
 const FName AGalagaModificadoMacPawn::MoveRightBinding("MoveRight");
@@ -59,13 +60,13 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	CameraComponent->bUsePawnControlRotation = false;
 	CameraBoom->bUsePawnControlRotation = false;
 
+	ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
+
 	// Movement & Weapon
 	MoveSpeed = 1000.0f;
 	GunOffset = FVector(90.f, 0.f, 0.f);
 	FireRate = 0.1f;
 	bCanFire = true;
-	VidaMaxima = 500.0f;
-	VidaActual = VidaMaxima;
 	
 	//indicamos que la camara gire con la nave y no al reves
 	bUseControllerRotationPitch = false;	// Permite que la nave levante/baje la nariz con el ratón
@@ -74,7 +75,13 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	ConvertirEnNave();
 	EstadoActual = new FEstadoNaveVoladora();
-	Faccion = FName("Jugador");
+
+	if (ComponenteCombate != nullptr)
+	{
+		ComponenteCombate->VidaMaxima = 50.0f;
+		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+		ComponenteCombate->Faccion = FName("Jugador");
+	}
 }
 
 void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
@@ -258,4 +265,18 @@ void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto)
 	// El robot NO tiene cañones. No hacemos absolutamente nada.
 	// Opcional: Ponemos un mensaje en pantalla para que sepas que el bloqueo funciona.
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡Los robots no pueden disparar!"));
+}
+
+float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+{
+	// Recibimos el impacto base del motor de Unreal
+	float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+
+	// Se lo pasamos a tu Chip para que reste la vida, rompa escudos y maneje la lógica
+	if (ComponenteCombate != nullptr)
+	{
+		DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
+	}
+
+	return DanioReal;
 }

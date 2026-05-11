@@ -1,22 +1,44 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+// Declaraciones anticipadas para no saturar el compilador
+class ANaveComando;
+class ATorreta;
+class ARobot_Lider;
+class ANaveLider;
+class ANaveKamikase;
+class ANave_CMN;
+
 #include "GalagaModificadoMacGameMode.generated.h"
 
-UCLASS(MinimalAPI)
-class AGalagaModificadoMacGameMode : public AGameModeBase
+UCLASS()
+class GALAGAMODIFICADOMAC_API AGalagaModificadoMacGameMode : public AGameModeBase
 {
 	GENERATED_BODY()
 
 public:
 	AGalagaModificadoMacGameMode();
-protected:
-	// Sobrescribimos el BeginPlay para que ocurra al darle "Play"
+
 	virtual void BeginPlay() override;
+
+	// La función maestra que invocará al ejército
+	void GenerarEjercito();
+
+	// --- CONTENEDORES PUROS DE C++ (SIN UPROPERTY) ---
+	TArray<ANaveComando*> ListaNavesComando;
+	TArray<ATorreta*> ListaTorretas;
+	TArray<ARobot_Lider*> ListaRobotsLider;
+	TArray<ANaveLider*> ListaNavesLider;
+	TArray<ANaveKamikase*> ListaNavesKamikase;
+	TArray<ANave_CMN*> ListaNavesCMN;
+
+private:
+	// --- VARIABLES MODIFICABLES DESDE EL CÓDIGO ---
+	int32 CantNaveComando;
+	int32 CantTorreta;
+	int32 CantRobotLider;
+	int32 CantNaveLider;
+	int32 CantNaveKamikase;
+	int32 CantNaveCMN;
 };
-
-
-

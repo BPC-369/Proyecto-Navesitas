@@ -6,6 +6,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "GalagaModificadoMacProjectile.h"
+#include "ComponenteCombate.h"
 
 ARobot_RZ_D::ARobot_RZ_D()
 {
@@ -16,6 +17,14 @@ ARobot_RZ_D::ARobot_RZ_D()
 
     // Dispara a los 10 metros, pero empieza a esquivar a los 6 metros
     DistanciaOptimaDeCombate = 600.0f;
+    if (ComponenteCombate != nullptr)
+    {
+        ComponenteCombate->VidaMaxima = 50.0f;
+        ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+        ComponenteCombate->EscudoMaximo = 0.0f;
+        ComponenteCombate->EscudoActual = ComponenteCombate->EscudoMaximo;
+        ComponenteCombate->Faccion = FName("Enemigo");
+    }
 }
 
 // Mantenemos exactamente el mismo Mover() con el Producto Cruz de la respuesta anterior

@@ -6,19 +6,24 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
 #include "GalagaModificadoMacProjectile.h"
+#include "ComponenteCombate.h"
 
 ANave_CMN::ANave_CMN()
 {
-	VidaMaxima = 50.0f;        // Vida baja 
-	VidaActual = VidaMaxima;
-	EscudoMaximo = 100.0f;
 	DanioAtaque = 10.0f;        // Ataque bajo 
 	Velocidad = 300.0f;        // Velocidad media 
 	FrecuenciaAtaque = 0.5f;   // Intervalo de ataque medio (dispara cada 3 segundos) 
-	Faccion = FName("Enemigo");
+
 
 	bTieneEscudo = false;
 	bEsElite = false;
+
+	if (ComponenteCombate != nullptr)
+	{
+		ComponenteCombate->VidaMaxima = 50.0f;
+		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+		ComponenteCombate->Faccion = FName("Enemigo");
+	}
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCono(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickUFO.TwinStickUFO'"));
 	if (FormaCono.Succeeded() && MallaEnemiga != nullptr)

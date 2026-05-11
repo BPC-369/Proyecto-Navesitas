@@ -68,9 +68,15 @@ float AEntidadCombate::TakeDamage(float DamageAmount, FDamageEvent const& Damage
 			AEntidadCombate* TiradorEntidad = Cast<AEntidadCombate>(Tirador);
 
 			// Si el actor existe y su faccion es exactamente igual a la nuestra, entonces es un aliado y no se aplicara daño.
+			if (TiradorEntidad == nullptr)
+			{
+				TiradorEntidad = Cast<AEntidadCombate>(DamageCauser->GetOwner());
+			}
+
+			// 3. Ahora comprobamos el fuego amigo con el atacante real
 			if (TiradorEntidad != nullptr && TiradorEntidad->Faccion == this->Faccion)
 			{
-				return 0.0f;
+				return 0.0f; // Bloquear daño aliado
 			}
 		}
 	}

@@ -1,15 +1,10 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "EnemigoTerrestre.h"
 #include "Robot_Razo.generated.h"
 
-/**
- * 
- */
-UCLASS(Abstract)
+UCLASS()
 class GALAGAMODIFICADOMAC_API ARobot_Razo : public AEnemigoTerrestre
 {
 	GENERATED_BODY()
@@ -18,6 +13,19 @@ public:
 
 	virtual void Tick(float DeltaTime) override;
 
+	// Sobrescribimos el ataque del padre
+	virtual void Atacar() override;
+
 protected:
-	bool bProtocoloFuriaActivado; // Un seguro para que solo se cure una vez
+	bool bProtocoloFuriaActivado;
+
+private:
+	// La función que se ejecutará después de medio segundo de canalización
+	void FinalizarAtaque();
+
+	// Temporizador para contar el medio segundo
+	FTimerHandle TimerHandle_Canalizacion;
+
+	// Seguro para saber si el robot ya está en medio de un ataque
+	bool bEstaAtacando;
 };

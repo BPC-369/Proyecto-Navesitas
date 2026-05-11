@@ -6,9 +6,6 @@
 #include "NaveEnemigoAereo.h"
 #include "Nave_CMN.generated.h"
 
-/**
- * 
- */
 UCLASS()
 class GALAGAMODIFICADOMAC_API ANave_CMN : public ANaveEnemigoAereo
 {

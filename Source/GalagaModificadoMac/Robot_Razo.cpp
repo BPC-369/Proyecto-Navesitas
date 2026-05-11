@@ -1,7 +1,7 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Robot_Razo.h"
+#include "ComponenteCombate.h"
+#include "Kismet/GameplayStatics.h" 
+#include "GameFramework/CharacterMovementComponent.h" // Vital para reducir la velocidad física
 
 ARobot_Razo::ARobot_Razo()
 {
@@ -10,22 +10,87 @@ ARobot_Razo::ARobot_Razo()
 	VelocidadMovimiento = 250.0f;
 	RangoDeteccion = 800.0f;
 	DanioBase = 15.0f;
+	RangoAtaque = 150.0f;
 
-	VidaMaxima = 100.0f;
-	VidaActual = VidaMaxima;
 	bProtocoloFuriaActivado = false;
+	bEstaAtacando = false; // Iniciamos sin atacar
+
+	if (ComponenteCombate != nullptr)
+	{
+		ComponenteCombate->VidaMaxima = 100.0f;
+		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+		ComponenteCombate->Faccion = FName("Enemigo");
+	}
 }
 
 void ARobot_Razo::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	// Lógica Única de la familia Razo: Si la vida cae al 50% o menos
-	if (!bProtocoloFuriaActivado && VidaActual <= (VidaMaxima * 0.5f))
+	if (ComponenteCombate != nullptr)
 	{
-		// Regeneración y aumento de estadísticas
-		VidaActual += 20.0f; // Se cura
-		DanioBase *= 1.5f;   // Sube su ataque un 50%
-		bProtocoloFuriaActivado = true; // Bloqueamos para que no se cure infinitamente
+		if (!bProtocoloFuriaActivado && ComponenteCombate->VidaActual <= (ComponenteCombate->VidaMaxima * 0.5f))
+		{
+			ComponenteCombate->VidaActual += 20.0f;
+
+			if (ComponenteCombate->VidaActual > ComponenteCombate->VidaMaxima)
+			{
+				ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+			}
+
+			DanioBase *= 1.5f;
+			bProtocoloFuriaActivado = true;
+		}
 	}
+}
+
+void ARobot_Razo::Atacar()
+{
+	// 1. Si ya estamos en medio de una canalización, ignoramos la orden para no reiniciar el timer
+	if (bEstaAtacando) return;
+
+	bEstaAtacando = true;
+
+	// 2. Reducimos la velocidad física a la mitad mientras canaliza el golpe
+	if (GetCharacterMovement() != nullptr)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = (VelocidadMovimiento / 2.0f);
+	}
+
+	// 3. Iniciamos el temporizador: Llama a "FinalizarAtaque" en exactamente 0.5 segundos. 
+	// El 'false' indica que no se repetirá en bucle.
+	GetWorldTimerManager().SetTimer(TimerHandle_Canalizacion, this, &ARobot_Razo::FinalizarAtaque, 0.5f, false);
+}
+
+void ARobot_Razo::FinalizarAtaque()
+{
+	// 1. Restauramos la velocidad física a su valor original
+	if (GetCharacterMovement() != nullptr)
+	{
+		GetCharacterMovement()->MaxWalkSpeed = VelocidadMovimiento;
+	}
+
+	// 2. Calculamos dónde está el jugador medio segundo después
+	float DistanciaActual = CalcularDistanciaAlJugador();
+
+	// 3. Si el jugador sigue dentro del rango de ataque (Le damos un margen extra de 20.0f por el hitbox)
+	if (DistanciaActual > 0.0f && DistanciaActual <= (RangoAtaque + 20.0f))
+	{
+		APawn* Jugador = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+		if (Jugador != nullptr)
+		{
+			// ¡El golpe conecta! Aplicamos el daño.
+			UGameplayStatics::ApplyDamage(Jugador, DanioBase, GetController(), this, UDamageType::StaticClass());
+
+			if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡ROBOT RAZO: Golpe Conectado!"));
+		}
+	}
+	else
+	{
+		// El jugador logró escapar del rango antes de los 0.5 segundos
+		if (GEngine) GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("¡ROBOT RAZO: Ataque Fallido!"));
+	}
+
+	// 4. Liberamos el seguro para que pueda volver a atacar en el futuro
+	bEstaAtacando = false;
 }

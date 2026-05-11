@@ -5,13 +5,21 @@
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
+#include "ComponenteCombate.h"
 
 ANaveLider::ANaveLider()
 {
 	PrimaryActorTick.bCanEverTick = true;
 	ContadorDisparos = 0;
-	EnergiaEscudo = 150.0f; // vida escudo
-	VidaLider = 200.0f;     // Salud base de la nave
+
+	if (ComponenteCombate != nullptr)
+	{
+		ComponenteCombate->VidaMaxima = 50.0f;
+		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+		ComponenteCombate->EscudoMaximo = 0.0f;
+		ComponenteCombate->EscudoActual = ComponenteCombate->EscudoMaximo;
+		ComponenteCombate->Faccion = FName("Enemigo");
+	}
 	// Buscamos la malla de la Nave Comando
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickUFO.TwinStickUFO'"));
 
@@ -23,7 +31,6 @@ ANaveLider::ANaveLider()
 		// Opcional: Si quieres que sea más grande que las comunes para que imponga
 		MallaEnemiga->SetWorldScale3D(FVector(1.5f, 1.5f, 1.5f));
 	}
-	Faccion = FName("Enemigo");
 }
 
 
@@ -81,6 +88,8 @@ void ANaveLider::Atacar()
 
 
 // ajustamos los daños de impacto Primero Escudo, luego VidaLider
+
+/*
 float ANaveLider::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
 {
 	// 1. Primero se agota el escudo 
@@ -107,3 +116,4 @@ float ANaveLider::TakeDamage(float DamageAmount, struct FDamageEvent const& Dama
 
 	return DamageAmount;
 }
+*/

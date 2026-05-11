@@ -1,18 +1,24 @@
 #include "Robot_Lider.h"
 #include "Kismet/GameplayStatics.h" // Para el ataque en área y spawn
 #include "Robot_RZ.h"
+#include "ComponenteCombate.h" // Para el chip de vida y facción
 
 ARobot_Lider::ARobot_Lider()
 {
-	VidaMaxima = 250.0f;    // Vida moderada (Ajustado a 250 en lugar de 25)
-	EscudoMaximo = 150.0f;  // Posee un escudo
 	DanioArea = 50.0f;      // Daño alto
 	RadioAtaqueArea = 600.0f;
-
 	VelocidadMovimiento = 400.0f; // Dale el valor de "Velocidad alta" que exige tu GDD
 	RangoDeteccion = 1500.0f;     // Aumenta la visión para que detecte al jugador desde lejos
 	RangoAtaque = 300.0f;         // Distancia a la que se detiene a atacar
 
+	if (ComponenteCombate != nullptr)
+	{
+		ComponenteCombate->VidaMaxima = 50.0f;
+		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+		ComponenteCombate->EscudoMaximo = 0.0f;
+		ComponenteCombate->EscudoActual = ComponenteCombate->EscudoMaximo;
+		ComponenteCombate->Faccion = FName("Enemigo");
+	}
 	// Nota: La velocidad alta se configura en el CharacterMovement 
 	// o mediante una variable si es un Pawn simple.
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCono(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_QuadPyramid.Shape_QuadPyramid'"));
@@ -59,6 +65,12 @@ void ARobot_Lider::InvocarRefuerzos()
 	// 4. Prueba de diagnóstico en pantalla
 	if (NuevoEnemigo != nullptr)
 	{
+		UComponenteCombate* CompEscolta = NuevoEnemigo->FindComponentByClass<UComponenteCombate>();
+		if (CompEscolta && ComponenteCombate)
+		{
+			CompEscolta->Faccion = ComponenteCombate->Faccion;
+		}
+
 		if (GEngine)
 		{
 			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("¡ROBOT RAZO INVOCADO!"));
@@ -77,11 +89,21 @@ void ARobot_Lider::EjecutarAtaqueArea()
 
 	for (AActor* Actor : ActoresAlrededor)
 	{
-		// Solo hacemos daño si es un enemigo (distinta facción)
-		AEntidadCombate* Entidad = Cast<AEntidadCombate>(Actor);
-		if (Entidad && Entidad->Faccion != this->Faccion)
+
+		// Ignoramos golpearnos a nosotros mismos
+		if (Actor == this) continue;
+
+		// 4. ARREGLO FINAL: Buscamos el chip del actor alcanzado por el área
+		UComponenteCombate* CompGolpeado = Actor->FindComponentByClass<UComponenteCombate>();
+
+		if (CompGolpeado != nullptr && ComponenteCombate != nullptr)
 		{
-			UGameplayStatics::ApplyDamage(Entidad, DanioArea, GetController(), this, UDamageType::StaticClass());
+			// Si no es de nuestra facción aliada...
+			if (CompGolpeado->Faccion != ComponenteCombate->Faccion)
+			{
+				// ... ¡Aplicamos el daño nativo de Unreal AL ACTOR, no al componente!
+				UGameplayStatics::ApplyDamage(Actor, DanioArea, GetController(), this, UDamageType::StaticClass());
+			}
 		}
 	}
 }
