@@ -31,13 +31,15 @@ AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 
 void AGalagaModificadoMacProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
+	// 1. Verificamos que el impacto sea contra un actor válido, y que NO sea la propia Torreta/Padre
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && (OtherActor != GetOwner()))
 	{
-		// Aplicamos daño al actor que tocamos (tu jugador)
+		// 2. Aplicamos daño
 		UGameplayStatics::ApplyDamage(OtherActor, DanoProyectil, nullptr, this, UDamageType::StaticClass());
 
-		// Log para confirmar que la bala golpeó algo
 		UE_LOG(LogTemp, Warning, TEXT("Bala impacto en: %s"), *OtherActor->GetName());
+
+		// 3. ¡SOLO DESTRUIMOS LA BALA SI REALMENTE GOLPEÓ ALGO VÁLIDO!
+		Destroy();
 	}
-	Destroy();
 }

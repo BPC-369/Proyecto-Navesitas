@@ -6,31 +6,45 @@
 #include "GalagaModificadoMacProjectile.h"
 #include "UObject/ConstructorHelpers.h"
 #include "ComponenteCombate.h"
-#include "GameFramework/CharacterMovementComponent.h" // Necesario para inmovilizarla
+#include "GameFramework/CharacterMovementComponent.h" 
+#include "Components/CapsuleComponent.h"
 
 ATorreta::ATorreta()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 1. CUMPLIENDO EL DISEÑO: Como hereda de Character, la inmovilizamos para que sea una torreta estática.
+	// INICIALIZACIÓN MANUAL (Por doble seguridad)
+	JugadorObjetivo = nullptr;
+
 	if (GetCharacterMovement() != nullptr)
 	{
 		GetCharacterMovement()->MaxWalkSpeed = 0.0f;
+		GetCharacterMovement()->GravityScale = 1.0f;
+		GetCharacterMovement()->bConstrainToPlane = true;
 	}
 
-	// 2. ARREGLO VITAL: ¡Construir los componentes ANTES de usarlos!
-	MallaCanion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaCanion"));
-	MallaCanion->SetupAttachment(MallaEnemiga); // Enganchamos el cañón a la base
+	// Mallas
+	MallaEnemiga->SetupAttachment(GetCapsuleComponent());
+	MallaEnemiga->SetSimulatePhysics(false);
 
+	MallaCanion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaCanion"));
+	MallaCanion->SetupAttachment(MallaEnemiga);
+	MallaCanion->SetSimulatePhysics(false);
+
+	// Rango de Detección
 	RangoDeteccion = CreateDefaultSubobject<USphereComponent>(TEXT("RangoDeteccion"));
 	RangoDeteccion->SetupAttachment(RootComponent);
+	RangoDeteccion->SetSphereRadius(3200.0f);
 
-	// Ahora sí podemos cambiar el radio sin crashear
-	RangoDeteccion->SetSphereRadius(1200.0f);
+	// Esto hace que la esfera gigante sea un "fantasma" que no bloquee tus balas
+	RangoDeteccion->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
+	RangoDeteccion->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
+	RangoDeteccion->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+
 	CadenciaAtaque = 1.0f;
-	DistanciaParaAcelerar = 600.0f;
+	DistanciaParaAcelerar = 1600.0f;
 
-	// 3. Ajuste de Vida (Vida moderada según tu diseño)
+	// Componente de Vida
 	if (ComponenteCombate != nullptr)
 	{
 		ComponenteCombate->VidaMaxima = 150.0f;
@@ -38,7 +52,6 @@ ATorreta::ATorreta()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	// Cargamos el cilindro nativo de Unreal como base
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaBase(TEXT("StaticMesh'/Engine/BasicShapes/Cylinder.Cylinder'"));
 	if (FormaBase.Succeeded() && MallaEnemiga != nullptr)
 	{
@@ -60,13 +73,8 @@ void ATorreta::Tick(float DeltaTime)
 
 	if (JugadorObjetivo && RangoDeteccion->IsOverlappingActor(JugadorObjetivo))
 	{
-		// Rotación suave exclusiva del CAÑÓN hacia el jugador
 		FVector Direccion = JugadorObjetivo->GetActorLocation() - MallaCanion->GetComponentLocation();
 		FRotator NuevaRotacion = Direccion.Rotation();
-
-		// TRUCO OPCIONAL: Si no quieres que el cañón mire hacia arriba/abajo, descomenta estas líneas:
-		// NuevaRotacion.Pitch = 0.0f; 
-		// NuevaRotacion.Roll = 0.0f;
 
 		MallaCanion->SetWorldRotation(FMath::RInterpTo(MallaCanion->GetComponentRotation(), NuevaRotacion, DeltaTime, 5.0f));
 
@@ -84,13 +92,11 @@ void ATorreta::Atacar()
 {
 	if (JugadorObjetivo && RangoDeteccion->IsOverlappingActor(JugadorObjetivo))
 	{
-		// 1. AUMENTAMOS EL OFFSET: Como la bala es gigante (5x), 200.0f no alcanza. 
-		// Lo subimos a 400.0f o 500.0f para que nazca bien afuera de la torreta.
 		FVector SpawnLoc = MallaCanion->GetComponentLocation() + (MallaCanion->GetForwardVector() * 500.0f);
 		FRotator SpawnRot = MallaCanion->GetComponentRotation();
 
 		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = this; // ¡VITAL! Declaramos a la Torreta como "dueña" de la bala
+		SpawnParams.Owner = this;
 		SpawnParams.Instigator = GetInstigator();
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
@@ -100,13 +106,11 @@ void ATorreta::Atacar()
 
 			if (Proyectil)
 			{
-				Proyectil->SetActorScale3D(FVector(5.0f, 5.0f, 5.0f));
+				Proyectil->SetActorScale3D(FVector(3.0f, 3.0f, 3.0f));
 
-				// 2. EL SEGURO DE VIDA: Forzamos a la raíz de la bala a ignorar a la torreta físicamente
 				UPrimitiveComponent* ColisionBala = Cast<UPrimitiveComponent>(Proyectil->GetRootComponent());
 				if (ColisionBala)
 				{
-					// La bala atravesará a la torreta en caso de que choquen accidentalmente
 					ColisionBala->IgnoreActorWhenMoving(this, true);
 				}
 			}

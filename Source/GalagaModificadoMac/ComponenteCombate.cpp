@@ -10,7 +10,7 @@ UComponenteCombate::UComponenteCombate()
 	VidaActual = VidaMaxima;
 	EscudoMaximo = 0.0f;
 	EscudoActual = EscudoMaximo;
-	Faccion = TEXT("Enemigo"); // Valor por defecto
+	Faccion = TEXT("Enemigo");
 }
 
 void UComponenteCombate::BeginPlay()

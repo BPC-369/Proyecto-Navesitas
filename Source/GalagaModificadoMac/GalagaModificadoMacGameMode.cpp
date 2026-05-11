@@ -37,7 +37,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 
 	// Variables para separar a los enemigos en el mapa
 	FVector PosicionAerea(0.0f, 0.0f, 800.0f);    // Las naves nacen en el aire
-	FVector PosicionTerrestre(0.0f, 0.0f, 100.0f); // Los robots y torretas en el suelo
+	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f); // Los robots y torretas en el suelo
 
 	float Separacion = 300.0f; // Distancia entre cada enemigo
 
