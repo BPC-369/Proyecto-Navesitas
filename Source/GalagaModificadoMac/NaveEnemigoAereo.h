@@ -31,7 +31,7 @@ public:
     // Función de ataque (será diferente para cada tipo de nave)
     virtual void Atacar();
     //virtual void AlChocar(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);
-
+    FName Faccion;
 protected:
     // Componente visual para la nave enemiga
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Componentes")
