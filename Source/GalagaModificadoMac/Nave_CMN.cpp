@@ -11,9 +11,11 @@ ANave_CMN::ANave_CMN()
 {
 	VidaMaxima = 50.0f;        // Vida baja 
 	VidaActual = VidaMaxima;
+	EscudoMaximo = 100.0f;
 	DanioAtaque = 10.0f;        // Ataque bajo 
 	Velocidad = 300.0f;        // Velocidad media 
 	FrecuenciaAtaque = 0.5f;   // Intervalo de ataque medio (dispara cada 3 segundos) 
+	Faccion = FName("Enemigo");
 
 	bTieneEscudo = false;
 	bEsElite = false;
@@ -24,7 +26,7 @@ ANave_CMN::ANave_CMN()
 		MallaEnemiga->SetStaticMesh(FormaCono.Object);
 
 		// Rotamos el cono para que la punta mire hacia el frente (Eje X)
-		MallaEnemiga->SetRelativeRotation(FRotator(-90.0f, 0.0f, 0.0f));
+		MallaEnemiga->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
 	}
 }
 

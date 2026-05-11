@@ -6,9 +6,7 @@
 #include "EntidadCombate.h"
 #include "NaveEnemigoAereo.generated.h"
 
-/**
- * 
- */
+class UStaticMeshComponent;
 UCLASS(Abstract)
 class GALAGAMODIFICADOMAC_API ANaveEnemigoAereo : public AEntidadCombate
 {
@@ -37,6 +35,6 @@ public:
 protected:
     // Componente visual para la nave enemiga
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Componentes")
-    class UStaticMeshComponent* MallaEnemiga;
+    UStaticMeshComponent* MallaEnemiga;
 	
 };
