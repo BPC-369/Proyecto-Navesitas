@@ -46,8 +46,8 @@ AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculo(UWorld* Mu
 		}
 		else if (TipoSuerte == 3 && MallasArboles.Num() > 0) // Es un Árbol quemado/destruido
 		{
-			NuevoObstaculo->MallaComponent->SetStaticMesh(MallasArboles[0]);
-	s
+			NuevoObstaculo->MallaComponent->SetStaticMesh(MallasArboles[0]);;
+	
 			float EscalaArbol = FMath::FRandRange(0.01f, 0.01f);
 			NuevoObstaculo->SetActorScale3D(FVector(0.01f, 0.01f, EscalaArbol));
 		}

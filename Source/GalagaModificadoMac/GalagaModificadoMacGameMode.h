@@ -9,6 +9,7 @@ class ARobot_Lider;
 class ANaveLider;
 class ANaveKamikase;
 class ANave_CMN;
+class ARobotFrancotirador;
 
 #include "GalagaModificadoMacGameMode.generated.h"
 
@@ -32,6 +33,7 @@ public:
 	TArray<ANaveLider*> ListaNavesLider;
 	TArray<ANaveKamikase*> ListaNavesKamikase;
 	TArray<ANave_CMN*> ListaNavesCMN;
+	TArray<ARobotFrancotirador*> ListaFrancotiradores;
 
 private:
 	// --- VARIABLES MODIFICABLES DESDE EL CÓDIGO ---
@@ -41,4 +43,5 @@ private:
 	int32 CantNaveLider;
 	int32 CantNaveKamikase;
 	int32 CantNaveCMN;
+	int32 CantFrancotirador;
 };

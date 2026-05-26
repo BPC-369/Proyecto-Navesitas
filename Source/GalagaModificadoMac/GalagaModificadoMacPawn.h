@@ -3,11 +3,10 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Character.h" // 1. CAMBIO: Ahora heredamos del motor base
+#include "GameFramework/Character.h"
 #include "GalagaModificadoMacPawn.generated.h"
 
 class UStaticMesh;
-// 2. CAMBIO: Corregimos el nombre del componente (le faltaba la 'e')
 class UComponenteCombate;
 
 // --- INICIO DEL PATRÓN STATE ---
@@ -38,42 +37,44 @@ public:
 // --- FIN DEL PATRÓN STATE ---
 
 UCLASS(Blueprintable)
-class AGalagaModificadoMacPawn : public ACharacter // 3. CAMBIO: Hereda de ACharacter
+class AGalagaModificadoMacPawn : public ACharacter
 {
 	GENERATED_BODY()
 
-	UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UStaticMeshComponent* ShipMeshComponent;
+		UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+		class UStaticMeshComponent* ShipMeshComponent;
 
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class UCameraComponent* CameraComponent;
+		class UCameraComponent* CameraComponent;
 
 	UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
-	class USpringArmComponent* CameraBoom;
+		class USpringArmComponent* CameraBoom;
 
 public:
 	AGalagaModificadoMacPawn();
 
 	UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
-	FVector GunOffset;
+		FVector GunOffset;
 
 	UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
-	float FireRate;
+		float FireRate;
 
 	UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
-	float MoveSpeed;
+		float MoveSpeed;
 
 	UPROPERTY(Category = Audio, EditAnywhere, BlueprintReadWrite)
-	class USoundBase* FireSound;
+		class USoundBase* FireSound;
 
-	// 4. CAMBIO: Declaramos formalmente tu Chip de Combate para que el Editor lo vea
+	// Widget de Game Over
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+		TSubclassOf<class UUserWidget> WidgetGameOverClass;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combate")
-	UComponenteCombate* ComponenteCombate;
+		UComponenteCombate* ComponenteCombate;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 
-	// 5. CAMBIO: Declaramos la función que recibe los golpes
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void FireShot(FVector FireDirection);
@@ -83,13 +84,13 @@ public:
 	void DetenerDisparo();
 
 	bool bEstaDisparando;
-	float MultiplicadorDanio; // Inicia en 1.0f en tu constructor
+	float MultiplicadorDanio;
 
 	// Nave
 	float TiempoDisparoCuadruple;
 	int32 BombasRacimoRestantes;
 	float TiempoBuffoNave;
-	float VelocidadOriginalNave; // Para restaurarla luego del buffo
+	float VelocidadOriginalNave;
 
 	// Robot
 	float TiempoBuffoRobot;
@@ -106,14 +107,18 @@ private:
 	uint32 bCanFire : 1;
 	FTimerHandle TimerHandle_ShotTimerExpired;
 
+	bool bMuerto = false;   // <- Añadido para el Game Over
+
 	UStaticMesh* RopaNave;
 	UStaticMesh* RopaCubo;
+
 public:
 	FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
 	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	void Transformar();
+	void ManejarMuerte();   // <- Añadido
 
 	IEstadoNave* EstadoActual;
 
@@ -121,6 +126,7 @@ public:
 
 	void ConvertirEnNave();
 	void ConvertirEnRobot();
+
 protected:
 	virtual void BeginPlay() override;
 };
