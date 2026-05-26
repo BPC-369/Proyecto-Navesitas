@@ -34,7 +34,7 @@ ATorreta::ATorreta()
 	// Rango de Detección
 	RangoDeteccion = CreateDefaultSubobject<USphereComponent>(TEXT("RangoDeteccion"));
 	RangoDeteccion->SetupAttachment(RootComponent);
-	RangoDeteccion->SetSphereRadius(3200.0f);
+	RangoDeteccion->SetSphereRadius(1200.0f);
 
 	// Esto hace que la esfera gigante sea un "fantasma" que no bloquee tus balas
 	RangoDeteccion->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
@@ -42,7 +42,7 @@ ATorreta::ATorreta()
 	RangoDeteccion->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
 
 	CadenciaAtaque = 1.0f;
-	DistanciaParaAcelerar = 1600.0f;
+	DistanciaParaAcelerar = 600.0f;
 
 	// Componente de Vida
 	if (ComponenteCombate != nullptr)

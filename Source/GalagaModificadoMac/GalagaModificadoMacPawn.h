@@ -3,7 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Pawn.h" // 1. CAMBIO: Ahora heredamos del motor base
+#include "GameFramework/Character.h" // 1. CAMBIO: Ahora heredamos del motor base
 #include "GalagaModificadoMacPawn.generated.h"
 
 class UStaticMesh;
@@ -38,7 +38,7 @@ public:
 // --- FIN DEL PATRÓN STATE ---
 
 UCLASS(Blueprintable)
-class AGalagaModificadoMacPawn : public APawn // 3. CAMBIO: Hereda de APawn
+class AGalagaModificadoMacPawn : public ACharacter // 3. CAMBIO: Hereda de ACharacter
 {
 	GENERATED_BODY()
 
@@ -79,6 +79,22 @@ public:
 	void FireShot(FVector FireDirection);
 	void Disparar();
 	void ShotTimerExpired();
+	void EmpezarDisparo();
+	void DetenerDisparo();
+
+	bool bEstaDisparando;
+	float MultiplicadorDanio; // Inicia en 1.0f en tu constructor
+
+	// Nave
+	float TiempoDisparoCuadruple;
+	int32 BombasRacimoRestantes;
+	float TiempoBuffoNave;
+	float VelocidadOriginalNave; // Para restaurarla luego del buffo
+
+	// Robot
+	float TiempoBuffoRobot;
+	float TiempoCortesDistancia;
+	float TiempoInmunidad;
 
 	static const FName MoveForwardBinding;
 	static const FName MoveRightBinding;
@@ -92,7 +108,6 @@ private:
 
 	UStaticMesh* RopaNave;
 	UStaticMesh* RopaCubo;
-
 public:
 	FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
 	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
@@ -106,4 +121,6 @@ public:
 
 	void ConvertirEnNave();
 	void ConvertirEnRobot();
+protected:
+	virtual void BeginPlay() override;
 };

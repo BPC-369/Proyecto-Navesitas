@@ -13,6 +13,8 @@
 #include "Kismet/GameplayStatics.h"
 #include "Sound/SoundBase.h"
 #include "ComponenteCombate.h"
+#include "Components/CapsuleComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
 
 const FName AGalagaModificadoMacPawn::MoveForwardBinding("MoveForward");
 const FName AGalagaModificadoMacPawn::MoveRightBinding("MoveRight");
@@ -25,19 +27,20 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	RopaNave = nullptr;
 	RopaCubo = nullptr;
 
-	// Create the mesh component
+	// 1. EL CAMBIO CLAVE: Ajustamos la cápsula que ya viene con el ACharacter
+	GetCapsuleComponent()->InitCapsuleSize(60.f, 60.f);
+	GetCapsuleComponent()->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
+
+	// Create the mesh component y lo pegamos a la cápsula
 	ShipMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
-	RootComponent = ShipMeshComponent;
-	ShipMeshComponent->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
-	ShipMeshComponent->SetNotifyRigidBodyCollision(true);
-	// 2. Nos aseguramos de que devuelva golpes (Bloquee objetos dinámicos)
-	ShipMeshComponent->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Block);
+	ShipMeshComponent->SetupAttachment(GetCapsuleComponent());
+	ShipMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 
 	// Aqui cargamos las 2 mallas que tendra la nave
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickUFO.TwinStickUFO'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/Geometry/pawn/pawn06.pawn06'"));
 	if (FormaNave.Succeeded()) RopaNave = FormaNave.Object;
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCubo(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCubo(TEXT("StaticMesh'/Game/Geometry/pawn/pawn09.pawn09'"));
 	if (FormaCubo.Succeeded()) RopaCubo = FormaCubo.Object;
 
 	// Cache our sound effect
@@ -47,7 +50,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("BrazoCamara3D"));
 	CameraBoom->SetupAttachment(RootComponent);// enganchamos la camara a la nave
 	CameraBoom->SetUsingAbsoluteRotation(false);// hacemos que la camara rote junto con la nave
-	CameraBoom->TargetArmLength = 200.f;// distancia de la camara a la nave
+	CameraBoom->TargetArmLength = 250.f;// distancia de la camara a la nave
 	CameraBoom->SetRelativeRotation(FRotator(-10.f, 0.f, 0.f));//inclinamos la camara 
 	CameraBoom->SocketOffset = FVector(0.f, 0.f, 50.f);//la posicion que estara la camara
 	CameraBoom->bDoCollisionTest = true; // Que choque con los edificios si retrocedes
@@ -64,16 +67,26 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	// Movement & Weapon
 	MoveSpeed = 1000.0f;
-	GunOffset = FVector(90.f, 0.f, 0.f);
+	GunOffset = FVector(130.f, 0.f, 0.f);
 	FireRate = 0.1f;
 	bCanFire = true;
+	bEstaDisparando = false;
+
+	MultiplicadorDanio = 1.0f;
+	TiempoDisparoCuadruple = 0.0f;
+	BombasRacimoRestantes = 0;
+	TiempoBuffoNave = 0.0f;
+	VelocidadOriginalNave = 1000.0f;
+	TiempoBuffoRobot = 0.0f;
+	TiempoCortesDistancia = 0.0f;
+	TiempoInmunidad = 0.0f;
 	
 	//indicamos que la camara gire con la nave y no al reves
 	bUseControllerRotationPitch = false;	// Permite que la nave levante/baje la nariz con el ratón
 	bUseControllerRotationYaw = false;		// Permite que la nave gire a los lados con el ratón
 	bUseControllerRotationRoll = false;		// para que la nave no se incline x si sola
 
-	ConvertirEnNave();
+	//ConvertirEnNave();
 	EstadoActual = new FEstadoNaveVoladora();
 
 	if (ComponenteCombate != nullptr)
@@ -102,7 +115,8 @@ void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* 
 	// para detectar el movimiento del mouse en ambos ejes X e Y
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	// para empezar el disparo al presionar el boton
-	PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::Disparar);
+	PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::EmpezarDisparo);
+	PlayerInputComponent->BindAction("Disparar", IE_Released, this, &AGalagaModificadoMacPawn::DetenerDisparo);
 }
 
 void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
@@ -126,55 +140,116 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 		AddActorLocalRotation(RotacionNave);
 	}
 
-	// Creamos un vector 3D real
-	const FVector MoveDirection = FVector(ForwardValue, RightValue, UpValue).GetClampedToMaxSize(1.0f);
-	const FVector Movement = MoveDirection * MoveSpeed * DeltaSeconds;
+	// EL CAMBIO MAESTRO: Usar el CharacterMovement
+	// Esto aplica las velocidades de MoveSpeed automáticamente y calcula las colisiones por ti.
+	AddMovementInput(GetActorForwardVector(), ForwardValue);
+	AddMovementInput(GetActorRightVector(), RightValue);
+	AddMovementInput(GetActorUpVector(), UpValue);
 
-	// Movemos la nave
-	if (Movement.SizeSquared() > 0.0f)
+	if (bEstaDisparando)
 	{
-		if (RootComponent == nullptr) return;
-		
-		// El hit se usa para detectar colisiones. Si nos chocamos con algo, el valor de "Hit" se actualizará con la información del choque.
-		FHitResult Hit(1.f);
+		Disparar();
+		// Nota: Como tu función FireShot ya tiene el "if (bCanFire == true)", 
+		// esto es súper seguro. Solo disparará cuando el FireRate lo permita.
+	}
 
-		// AddLocalOffset mueve a la nave basándose en hacia dónde está mirando.
-		// Si miras al norte y presionas Derecha, te deslizas al este sin girar la nariz de la nave.
-		RootComponent->AddLocalOffset(Movement, true, &Hit);
+	if (TiempoDisparoCuadruple > 0.0f) TiempoDisparoCuadruple -= DeltaSeconds;
 
-		if (Hit.IsValidBlockingHit())// si nos chocamos con algo nos deslizamos sobre la superficie
+	if (TiempoCortesDistancia > 0.0f) TiempoCortesDistancia -= DeltaSeconds;
+
+	if (TiempoInmunidad > 0.0f)
+	{
+		TiempoInmunidad -= DeltaSeconds;
+		if (TiempoInmunidad <= 0.0f) MultiplicadorDanio = 1.0f; // Pierde el doble daño
+	}
+
+	if (TiempoBuffoNave > 0.0f)
+	{
+		TiempoBuffoNave -= DeltaSeconds;
+		if (TiempoBuffoNave <= 0.0f)
 		{
-			const FVector Normal2D = Hit.Normal.GetSafeNormal2D();
-			const FVector Deflection = FVector::VectorPlaneProject(Movement, Normal2D) * (1.f - Hit.Time);
-			RootComponent->AddLocalOffset(Deflection, true);
+			// Se acaba el buffo, regresamos a la normalidad
+			MoveSpeed = VelocidadOriginalNave;
+			GetCharacterMovement()->MaxFlySpeed = MoveSpeed;
+			MultiplicadorDanio = 1.0f;
+		}
+	}
+
+	if (TiempoBuffoRobot > 0.0f)
+	{
+		TiempoBuffoRobot -= DeltaSeconds;
+		if (TiempoBuffoRobot <= 0.0f)
+		{
+			MoveSpeed = 300.0f; // Tu velocidad normal de robot
+			GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+			// Aquí desactivarías tu lógica de Dash reducido
 		}
 	}
 }
 
+void AGalagaModificadoMacPawn::BeginPlay()
+{
+	Super::BeginPlay();
+
+	// Aquí SÍ se aplican correctamente los modos de vuelo y caminata del motor
+	ConvertirEnNave();
+}
+
 void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 {
-	if (bCanFire == true) // Si podemos disparar, entonces disparamos
+	if (bCanFire == true)
 	{
-		if (FireDirection.SizeSquared() > 0.0f) // Si el vector(Direccion) de disparo es válido, entonces disparamos
+		if (FireDirection.SizeSquared() > 0.0f)
 		{
-			// convertimos la direccion del disparo en una rotacion para que la bala sepa a donde ir
 			const FRotator FireRotation = FireDirection.Rotation();
-			
-			// Calculamos la posicion de la bala con un espaciado dado por el GunOffset para que no salga del centro de la nave
-			const FVector SpawnLocation = GetActorLocation() + FireRotation.RotateVector(GunOffset);
+			UWorld* const World = GetWorld();
 
-			UWorld* const World = GetWorld(); // Obtenemos el mundo para poder crear la bala en el mundo
-
-			if (World != nullptr) // Si el mundo existe, entonces podemos crear la bala
+			if (World != nullptr)
 			{
-				FActorSpawnParameters SpawnParams; // Creamos los parametros de spawn para configurar la bala
-				SpawnParams.Owner = this; // Indicamos que esta nave es el dueno de la bala
+				FActorSpawnParameters SpawnParams;
+				SpawnParams.Owner = this;
 
-				// creamos la bala en la posicion y rotacion indicados con los parametros de spawn dados
-				World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+				if (BombasRacimoRestantes > 0)
+				{
+					// EFECTO RACIMO
+					BombasRacimoRestantes--;
+					for (int i = 0; i < 8; i++)
+					{
+						FRotator RacimoRot = FireRotation;
+						RacimoRot.Yaw += (45.0f * i);
+						World->SpawnActor<AGalagaModificadoMacProjectile>(GetActorLocation(), RacimoRot, SpawnParams);
+					}
+				}
+				else if (TiempoDisparoCuadruple > 0.0f)
+				{
+					// EFECTO CUÁDRUPLE
+					float Sep1 = 15.0f;
+					float Sep2 = 45.0f;
+
+					FVector Izq1 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, -Sep1, GunOffset.Z));
+					FVector Der1 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, Sep1, GunOffset.Z));
+					FVector Izq2 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, -Sep2, GunOffset.Z));
+					FVector Der2 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, Sep2, GunOffset.Z));
+
+					World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
+					World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
+					World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
+					World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
+				}
+				else
+				{
+					// DISPARO NORMAL (Doble Cañón Original)
+					float SeparacionCanones = 23.0f;
+					FVector OffsetIzquierdo = FVector(GunOffset.X, -SeparacionCanones, GunOffset.Z);
+					FVector OffsetDerecho = FVector(GunOffset.X, SeparacionCanones, GunOffset.Z);
+					FVector SpawnLocationIzquierdo = GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
+					FVector SpawnLocationDerecho = GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
+
+					World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
+					World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+				}
 
 				bCanFire = false;
-				// Indicamos que no se puede disparar hasta que el timer expire, para controlar la cadencia de disparo
 				World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &AGalagaModificadoMacPawn::ShotTimerExpired, FireRate);
 
 				if (FireSound != nullptr)
@@ -201,6 +276,17 @@ void AGalagaModificadoMacPawn::Disparar()
 	}
 }
 
+void AGalagaModificadoMacPawn::EmpezarDisparo()
+{
+	bEstaDisparando = true;
+	Disparar(); // Disparamos una vez inmediatamente para que sea responsivo al primer clic
+}
+
+void AGalagaModificadoMacPawn::DetenerDisparo()
+{
+	bEstaDisparando = false;
+}
+
 // --- HERRAMIENTAS PARA EL PATRÓN STATE ---
 void AGalagaModificadoMacPawn::CambiarEstado(IEstadoNave* NuevoEstado)
 {
@@ -217,14 +303,24 @@ void AGalagaModificadoMacPawn::ConvertirEnNave()
 {
 	// Le ponemos la malla de nave al peón junto con sus stats correspondientes
 	if (RopaNave != nullptr) ShipMeshComponent->SetStaticMesh(RopaNave);
-	// ¡Aquí en el futuro podrías poner: MoveSpeed = 1000.0f; !
+
+	// Activamos el modo VUELO (Gravedad = 0, Movimiento Libre en Z)
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+	}
 }
 
 void AGalagaModificadoMacPawn::ConvertirEnRobot()
 {
 	// Le ponemos la malla de cubo al peón junto con sus stats correspondientes
 	if (RopaCubo != nullptr) ShipMeshComponent->SetStaticMesh(RopaCubo);
-	// ¡Aquí en el futuro podrías poner: MoveSpeed = 300.0f; !
+
+	// Activamos el modo CAMINAR (Le afecta la gravedad, cae al suelo)
+	if (GetCharacterMovement())
+	{
+		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
 }
 
 void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
@@ -269,6 +365,7 @@ void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto)
 
 float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
+	if (TiempoInmunidad > 0.0f) return 0.0f;
 	// Recibimos el impacto base del motor de Unreal
 	float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
 
