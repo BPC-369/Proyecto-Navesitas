@@ -1,5 +1,7 @@
 #include "GalagaModificadoMacGameMode.h"
 #include "Engine/World.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/PlayerController.h"
 
 // Asegúrate de tener los includes reales de tus clases
 #include "NaveComando.h"
@@ -8,21 +10,35 @@
 #include "NaveLider.h"
 #include "NaveKamikase.h"
 #include "Nave_CMN.h"
+#include "RobotFrancotirador.h"
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
 	// Aquí modificas las cantidades cuando quieras (Sin tocar el Editor)
-	CantNaveComando = 0;
-	CantTorreta = 0;
-	CantRobotLider = 0;
-	CantNaveLider = 0;
-	CantNaveKamikase = 0;
-	CantNaveCMN = 0;
+	CantNaveComando = 3;
+	CantTorreta = 2;
+	CantRobotLider = 3;
+	CantNaveLider = 3;
+	CantNaveKamikase = 4;
+	CantNaveCMN = 5;
+	CantFrancotirador = 3;
 }
 
 void AGalagaModificadoMacGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+	// Obtener el controlador del jugador
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+	if (PC)
+	{
+		// Forzar modo "solo juego" (sin necesidad de clic)
+		PC->SetInputMode(FInputModeGameOnly());
+		// Ocultar el cursor del ratón
+		PC->bShowMouseCursor = false;
+		// Desactivar eventos de ratón sobrantes
+		PC->bEnableClickEvents = false;
+		PC->bEnableMouseOverEvents = false;
+	}
 	GenerarEjercito();
 }
 
@@ -87,6 +103,15 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		FVector Pos = PosicionAerea + FVector(i * Separacion, -1000.0f, 0.0f);
 		ANave_CMN* NuevaCMN = Mundo->SpawnActor<ANave_CMN>(ANave_CMN::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
 		if (NuevaCMN) ListaNavesCMN.Add(NuevaCMN);
+	}
+
+	// 7. Spawn Robot Francotirador (3)
+	for (int32 i = 0; i < CantFrancotirador; i++)
+	{
+		// Los colocamos alejados en el terreno terrestre para que aprovechen su rango
+		FVector Pos = PosicionTerrestre + FVector(i * Separacion, 1500.0f, 0.0f);
+		ARobotFrancotirador* NuevoFrancotirador = Mundo->SpawnActor<ARobotFrancotirador>(ARobotFrancotirador::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
+		if (NuevoFrancotirador) ListaFrancotiradores.Add(NuevoFrancotirador);
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("¡Ejército Desplegado Exitosamente!"));

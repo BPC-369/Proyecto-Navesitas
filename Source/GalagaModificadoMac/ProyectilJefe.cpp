@@ -1,39 +1,4 @@
-﻿/*#include "ProyectilJefe.h"
-#include "Components/StaticMeshComponent.h"
-#include "GameFramework/ProjectileMovementComponent.h"
-#include "UObject/ConstructorHelpers.h"
-
-AProyectilJefe::AProyectilJefe()
-{
-	// 1. Cambiar la malla visual
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickProjectile.TwinStickProjectile'"));
-	DanoProyectil = 250.0f;
-	if (MeshAsset.Succeeded())
-	{
-		// Usamos el nombre del componente que heredaste del padre (normalmente ProjectileMesh)
-		// O lo buscamos de forma gen�rica:
-		UStaticMeshComponent* MallaEncontrada = Cast<UStaticMeshComponent>(GetComponentByClass(UStaticMeshComponent::StaticClass()));
-
-		if (MallaEncontrada)
-		{
-			MallaEncontrada->SetStaticMesh(MeshAsset.Object);
-		}
-
-		// Lo hacemos gigante para que se vea imponente
-		SetActorScale3D(FVector(3.5f, 3.5f, 3.5f));
-	}
-
-	// 2. Cambiar la velocidad
-	UProjectileMovementComponent* Movimiento = Cast<UProjectileMovementComponent>(GetComponentByClass(UProjectileMovementComponent::StaticClass()));
-
-	if (Movimiento)
-	{
-		Movimiento->InitialSpeed = 1200.f;
-		Movimiento->MaxSpeed = 1200.f;
-	}
-}*/
-
-#include "ProyectilJefe.h"
+﻿#include "ProyectilJefe.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "UObject/ConstructorHelpers.h"
