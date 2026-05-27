@@ -194,14 +194,38 @@ void AGalagaModificadoMacPawn::ShotTimerExpired()
 {
 	bCanFire = true;
 }
-/*
-void AGalagaModificadoMacPawn::Disparar()
+
+void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
 {
-	if (EstadoActual != nullptr)
+	Super::NotifyActorBeginOverlap(OtherActor);
+
+	// 1. Verificamos si estamos caminando (Forma Robot)
+	if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Walking)
 	{
-		EstadoActual->EjecutarAtaque(this);
+		// 2. Nos aseguramos de no hacernos daño a nosotros mismos
+		if (OtherActor != nullptr && OtherActor != this)
+		{
+			// 3. Comprobamos si el objeto chocado tiene tu Componente de Combate y es enemigo
+			UComponenteCombate* CompEnemigo = OtherActor->FindComponentByClass<UComponenteCombate>();
+
+			if (CompEnemigo != nullptr && CompEnemigo->Faccion == FName("Enemigo"))
+			{
+				float DanioPorChoque = 15.0f; // Puedes ajustar este valor
+
+				// Aplicamos el daño oficial de Unreal
+				UGameplayStatics::ApplyDamage(
+					OtherActor,
+					DanioPorChoque * MultiplicadorDanio,
+					GetController(),
+					this,
+					UDamageType::StaticClass()
+				);
+
+				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡EMBESTIDA ROBOT!"));
+			}
+		}
 	}
-}*/
+}
 
 void AGalagaModificadoMacPawn::EmpezarDisparo()
 {
@@ -240,50 +264,12 @@ void AGalagaModificadoMacPawn::ConvertirEnRobot()
 	}
 }
 
-void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
-{
-	NaveContexto->ConvertirEnRobot();
-	NaveContexto->CambiarEstado(new FEstadoNaveRobot());
-}
-
-void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
-{
-	NaveContexto->ConvertirEnNave();
-	NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
-}
-
 void AGalagaModificadoMacPawn::Transformar()
 {
 	if (EstadoActual != nullptr)
 	{
 		EstadoActual->EjecutarTransformacion(this);
 	}
-}
-
-void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
-{
-	UWorld* const World = NaveContexto->GetWorld();
-	if (World != nullptr)
-	{
-		const FRotator FireRotation = FireDirection.Rotation();
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = NaveContexto;
-
-		float SeparacionCanones = 23.0f;
-		FVector OffsetIzquierdo = FVector(NaveContexto->GunOffset.X, -SeparacionCanones, NaveContexto->GunOffset.Z);
-		FVector OffsetDerecho = FVector(NaveContexto->GunOffset.X, SeparacionCanones, NaveContexto->GunOffset.Z);
-
-		FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
-		FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
-
-		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
-		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
-	}
-}
-
-void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection	)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡Los robots no pueden disparar!"));
 }
 
 float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -333,12 +319,98 @@ void AGalagaModificadoMacPawn::ManejarMuerte()
 	}
 }
 
+void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
+{
+	NaveContexto->ConvertirEnRobot();
+	NaveContexto->CambiarEstado(new FEstadoNaveRobot());
+}
+
+void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
+{
+	UWorld* const World = NaveContexto->GetWorld();
+	if (World != nullptr)
+	{
+		const FRotator FireRotation = FireDirection.Rotation();
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = NaveContexto;
+
+		float SeparacionCanones = 23.0f;
+		FVector OffsetIzquierdo = FVector(NaveContexto->GunOffset.X, -SeparacionCanones, NaveContexto->GunOffset.Z);
+		FVector OffsetDerecho = FVector(NaveContexto->GunOffset.X, SeparacionCanones, NaveContexto->GunOffset.Z);
+
+		FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
+		FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
+
+		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
+		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+	}
+}
+
+void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection	)
+{
+	UWorld* const World = NaveContexto->GetWorld();
+	if (World != nullptr)
+	{
+		// 1. Calculamos dónde ocurrirá el corte (150 unidades por delante del robot)
+		FVector PosicionGolpe = NaveContexto->GetActorLocation() + (FireDirection * 150.0f);
+		float RadioGolpe = 200.0f; // El alcance de tu espada/corte
+		float DanioBase = 25.0f;
+
+		// 2. Preparamos los filtros de colisión
+		TArray<FOverlapResult> EnemigosGolpeados;
+		FCollisionQueryParams ParametrosColision;
+		ParametrosColision.AddIgnoredActor(NaveContexto); // El robot es inmune a su propio corte
+
+		// 3. Creamos una esfera invisible que detecta todo lo que toca en ese milisegundo
+		bool bHuboGolpe = World->OverlapMultiByChannel(
+			EnemigosGolpeados,
+			PosicionGolpe,
+			FQuat::Identity,
+			ECollisionChannel::ECC_Pawn, // Solo buscamos otros Pawns/Personajes
+			FCollisionShape::MakeSphere(RadioGolpe),
+			ParametrosColision
+		);
+
+		// 4. Si la espada tocó algo, le restamos vida
+		if (bHuboGolpe)
+		{
+			for (FOverlapResult& Overlap : EnemigosGolpeados)
+			{
+				AActor* ActorGolpeado = Overlap.GetActor();
+				if (ActorGolpeado != nullptr)
+				{
+					// Verificamos que sea un enemigo para no golpear aliados o powerups por error
+					UComponenteCombate* CompEnemigo = ActorGolpeado->FindComponentByClass<UComponenteCombate>();
+					if (CompEnemigo != nullptr && CompEnemigo->Faccion == FName("Enemigo"))
+					{
+						UGameplayStatics::ApplyDamage(
+							ActorGolpeado,
+							DanioBase * NaveContexto->MultiplicadorDanio,
+							NaveContexto->GetController(),
+							NaveContexto,
+							UDamageType::StaticClass()
+						);
+					}
+				}
+			}
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("¡CORTE FRONTAL!"));
+		}
+	}
+}
+
+void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
+{
+	NaveContexto->ConvertirEnNave();
+	NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
+}
+
 // PATRON DECORATOR
 FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
 	if (Contexto && Contexto->ComponenteCombate) {
 		Contexto->ComponenteCombate->VidaActual = Contexto->ComponenteCombate->VidaMaxima;
 		Contexto->ComponenteCombate->EscudoActual = Contexto->ComponenteCombate->EscudoMaximo;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("NAVE RECUPERO VIDA Y ESCUDO"));
 	}
 }
 
@@ -349,14 +421,75 @@ FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaM
 
 void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	// Ejecutamos el disparo original
-	FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	// Si el buffo sigue activo...
+	if (NaveContexto->TiempoDisparoCuadruple > 0.0f)
+	{
+		UWorld* const World = NaveContexto->GetWorld();
+		if (World != nullptr)
+		{
+			const FRotator FireRotation = FireDirection.Rotation();
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = NaveContexto;
+
+			float Sep1 = 15.0f;
+			float Sep2 = 45.0f;
+
+			FVector Izq1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep1, NaveContexto->GunOffset.Z));
+			FVector Der1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep1, NaveContexto->GunOffset.Z));
+			FVector Izq2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep2, NaveContexto->GunOffset.Z));
+			FVector Der2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep2, NaveContexto->GunOffset.Z));
+
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
+
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("4 ES MEJOR QUE 2"));
+		}
+	}
+	else
+	{
+		// Si se acabó el tiempo, delegamos el disparo al estado base (disparo de 2 balas)
+		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	}
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("4 ES MEJOR QUE 2"));
 	// (Aquí irá la lógica futura de spawnear las 3 balas adicionales)
 }
 
 FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
 	Contexto->BombasRacimoRestantes += 6;
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Orange, TEXT("BOMBITAS"));
+}
+
+void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
+{
+	// Si aún nos queda munición...
+	if (NaveContexto->BombasRacimoRestantes > 0)
+	{
+		UWorld* const World = NaveContexto->GetWorld();
+		if (World != nullptr)
+		{
+			const FRotator FireRotation = FireDirection.Rotation();
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = NaveContexto;
+
+			NaveContexto->BombasRacimoRestantes--; // Restamos una bomba
+
+			// Generamos las 8 balas en círculo
+			for (int i = 0; i < 8; i++)
+			{
+				FRotator RacimoRot = FireRotation;
+				RacimoRot.Yaw += (45.0f * i);
+				World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
+			}
+		}
+	}
+	else
+	{
+		// Si no hay munición, delegamos al disparo normal
+		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	}
 }
 
 FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
@@ -366,6 +499,7 @@ FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaM
 	Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
 	Contexto->MultiplicadorDanio = 1.5f;
 	Contexto->TiempoBuffoNave = 8.0f;
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, TEXT("NUESTRO VERDADERO POTENCIAL"));
 }
 
 FDecoradorVelocidadDash::FDecoradorVelocidadDash(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
@@ -382,7 +516,27 @@ FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalag
 
 void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	// (Aquí irá la lógica de las ondas de corte del robot)
+	if (NaveContexto->TiempoCortesDistancia > 0.0f)
+	{
+		UWorld* const World = NaveContexto->GetWorld();
+		if (World != nullptr)
+		{
+			const FRotator FireRotation = FireDirection.Rotation();
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = NaveContexto;
+
+			// Disparamos un solo proyectil central simulando el corte de la espada
+			FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
+			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("¡CORTE A DISTANCIA!"));
+		}
+	}
+	else
+	{
+		// Si se acabó el tiempo, el robot vuelve a no poder disparar
+		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	}
 }
 
 FDecoradorRecuperacionRobot::FDecoradorRecuperacionRobot(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
