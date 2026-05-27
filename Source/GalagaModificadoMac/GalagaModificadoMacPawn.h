@@ -80,6 +80,7 @@ public:
 class FDecoradorBombasRacimo : public FDecoradorBonificacion {
 public:
 	FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
 };
 
 class FDecoradorSuperBuffoNave : public FDecoradorBonificacion {
@@ -151,11 +152,12 @@ public:
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
 
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void FireShot(FVector FireDirection);
-	void Disparar();
+	//void Disparar();
 	void ShotTimerExpired();
 	void EmpezarDisparo();
 	void DetenerDisparo();

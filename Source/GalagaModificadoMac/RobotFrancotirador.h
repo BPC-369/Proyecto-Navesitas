@@ -3,25 +3,27 @@
 #include "EnemigoTerrestre.h"
 #include "RobotFrancotirador.generated.h"
 
+class EstadoRobot;
+
 UCLASS()
 class GALAGAMODIFICADOMAC_API ARobotFrancotirador : public AEnemigoTerrestre
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	ARobotFrancotirador();
+    ARobotFrancotirador();
 
-	virtual void ActualizarComportamiento() override;
-	virtual void Atacar() override;
+    virtual void ActualizarComportamiento() override;
+    virtual void Atacar() override;
 
-protected:
-	// Los 3 rangos solicitados
-	float RangoPreparacion;
-	float RangoDisparo;
+    float RangoPreparacion;
+    float RangoDisparo;
 
-	float TiempoEntreDisparos;
-	float TiempoUltimoDisparo;
+    float TiempoEntreDisparos;
+    float TiempoUltimoDisparo;
 
-	// Función auxiliar para que el robot gire hacia el jugador mientras se prepara
-	void ApuntarAlJugador();
+    void ApuntarAlJugador();
+
+private:
+    EstadoRobot* EstadoActual;
 };

@@ -15,7 +15,7 @@
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
 	// Aquí modificas las cantidades cuando quieras (Sin tocar el Editor)
-	CantNaveComando = 3;
+	CantNaveComando = 0;
 	CantTorreta = 0;
 	CantRobotLider = 0;
 	CantNaveLider = 3;

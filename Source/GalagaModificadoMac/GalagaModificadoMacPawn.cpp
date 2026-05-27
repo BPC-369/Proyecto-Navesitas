@@ -197,6 +197,14 @@ void AGalagaModificadoMacPawn::ShotTimerExpired()
 {
 	bCanFire = true;
 }
+/*
+void AGalagaModificadoMacPawn::Disparar()
+{
+	if (EstadoActual != nullptr)
+	{
+		EstadoActual->EjecutarAtaque(this);
+	}
+}*/
 
 void AGalagaModificadoMacPawn::EmpezarDisparo()
 {
@@ -233,18 +241,6 @@ void AGalagaModificadoMacPawn::ConvertirEnRobot()
 	{
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
 	}
-}
-
-void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
-{
-	NaveContexto->ConvertirEnRobot();
-	NaveContexto->CambiarEstado(new FEstadoNaveRobot());
-}
-
-void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
-{
-	NaveContexto->ConvertirEnNave();
-	NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
 }
 
 void AGalagaModificadoMacPawn::Transformar()
@@ -376,6 +372,7 @@ FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGal
 	if (Contexto && Contexto->ComponenteCombate) {
 		Contexto->ComponenteCombate->VidaActual = Contexto->ComponenteCombate->VidaMaxima;
 		Contexto->ComponenteCombate->EscudoActual = Contexto->ComponenteCombate->EscudoMaximo;
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Green, TEXT("NAVE RECUPERO VIDA Y ESCUDO"));
 	}
 }
 
@@ -392,6 +389,37 @@ void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCont
 FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
 	Contexto->BombasRacimoRestantes += 6;
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Orange, TEXT("BOMBITAS"));
+}
+
+void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
+{
+	// Si aún nos queda munición...
+	if (NaveContexto->BombasRacimoRestantes > 0)
+	{
+		UWorld* const World = NaveContexto->GetWorld();
+		if (World != nullptr)
+		{
+			const FRotator FireRotation = FireDirection.Rotation();
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = NaveContexto;
+
+			NaveContexto->BombasRacimoRestantes--; // Restamos una bomba
+
+			// Generamos las 8 balas en círculo
+			for (int i = 0; i < 8; i++)
+			{
+				FRotator RacimoRot = FireRotation;
+				RacimoRot.Yaw += (45.0f * i);
+				World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
+			}
+		}
+	}
+	else
+	{
+		// Si no hay munición, delegamos al disparo normal
+		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	}
 }
 
 FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
@@ -401,6 +429,7 @@ FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaM
 	Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
 	Contexto->MultiplicadorDanio = 1.5f;
 	Contexto->TiempoBuffoNave = 8.0f;
+	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Blue, TEXT("NUESTRO VERDADERO POTENCIAL"));
 }
 
 FDecoradorVelocidadDash::FDecoradorVelocidadDash(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
@@ -417,7 +446,27 @@ FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalag
 
 void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	// (Aquí irá la lógica de las ondas de corte del robot)
+	if (NaveContexto->TiempoCortesDistancia > 0.0f)
+	{
+		UWorld* const World = NaveContexto->GetWorld();
+		if (World != nullptr)
+		{
+			const FRotator FireRotation = FireDirection.Rotation();
+			FActorSpawnParameters SpawnParams;
+			SpawnParams.Owner = NaveContexto;
+
+			// Disparamos un solo proyectil central simulando el corte de la espada
+			FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
+			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("¡CORTE A DISTANCIA!"));
+		}
+	}
+	else
+	{
+		// Si se acabó el tiempo, el robot vuelve a no poder disparar
+		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	}
 }
 
 FDecoradorRecuperacionRobot::FDecoradorRecuperacionRobot(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
