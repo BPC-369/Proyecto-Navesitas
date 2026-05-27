@@ -17,7 +17,7 @@ AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 	// Aquí modificas las cantidades cuando quieras (Sin tocar el Editor)
 	CantNaveComando = 3;
 	CantTorreta = 0;
-	CantRobotLider = 3;
+	CantRobotLider = 0;
 	CantNaveLider = 3;
 	CantNaveKamikase = 3;
 	CantNaveCMN = 3;
@@ -52,10 +52,10 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
 	// Variables para separar a los enemigos en el mapa
-	FVector PosicionAerea(0.0f, 0.0f, 800.0f);    // Las naves nacen en el aire
+	FVector PosicionAerea(0.0f, 20000.0f, 1500.0f);    // Las naves nacen en el aire
 	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f); // Los robots y torretas en el suelo
 
-	float Separacion = 300.0f; // Distancia entre cada enemigo
+	float Separacion = 1500.0f; // Distancia entre cada enemigo
 
 	// 1. Spawn Nave Comando (2)
 	for (int32 i = 0; i < CantNaveComando; i++)

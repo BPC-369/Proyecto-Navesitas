@@ -197,6 +197,18 @@ public:
 	void Transformar();
 	void ManejarMuerte();   // <- Añadido
 
+	// --- EVENTO PARA EL BLUEPRINT (DETENER MÚSICA AL MORIR) ---
+	UFUNCTION(BlueprintImplementableEvent, Category = "Muerte")
+		void OnDeathEvent();
+
+	// --- FUNCIONES RESTAURADAS DEL CÓDIGO ANTERIOR ---
+	UFUNCTION(BlueprintCallable, Category = "Combate")
+		float GetVidaActual() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Combate")
+		float GetVidaMaxima() const;
+	// --------------------------------------------------
+
 	IEstadoNave* EstadoActual;
 
 	void CambiarEstado(IEstadoNave* NuevoEstado);

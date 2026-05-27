@@ -15,8 +15,8 @@
 #include "ComponenteCombate.h"
 #include "Components/CapsuleComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "Blueprint/UserWidget.h"			// <- Necesario para CreateWidget
-#include "GameFramework/PlayerController.h"	// <- Necesario para FInputModeUIOnly
+#include "Blueprint/UserWidget.h"			
+#include "GameFramework/PlayerController.h"	
 
 const FName AGalagaModificadoMacPawn::MoveForwardBinding("MoveForward");
 const FName AGalagaModificadoMacPawn::MoveRightBinding("MoveRight");
@@ -52,6 +52,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	CameraBoom->SetRelativeRotation(FRotator(-10.f, 0.f, 0.f));
 	CameraBoom->SocketOffset = FVector(0.f, 0.f, 50.f);
 	CameraBoom->bDoCollisionTest = true;
+
 	CameraComponent = CreateDefaultSubobject<UCameraComponent>(TEXT("TerceraPersonaCamera"));
 	CameraComponent->SetupAttachment(CameraBoom, USpringArmComponent::SocketName);
 	CameraComponent->bUsePawnControlRotation = false;
@@ -59,7 +60,10 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
 
-	MoveSpeed = 1000.0f;
+	// CONFIGURACIÓN ANTERIOR RESCATADA
+	MoveSpeed = 1500.0f;
+	VelocidadOriginalNave = 1500.0f;
+
 	GunOffset = FVector(130.f, 0.f, 0.f);
 	FireRate = 0.1f;
 	bCanFire = true;
@@ -69,7 +73,6 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	TiempoDisparoCuadruple = 0.0f;
 	BombasRacimoRestantes = 0;
 	TiempoBuffoNave = 0.0f;
-	VelocidadOriginalNave = 1000.0f;
 	TiempoBuffoRobot = 0.0f;
 	TiempoCortesDistancia = 0.0f;
 	TiempoInmunidad = 0.0f;
@@ -82,12 +85,12 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	if (ComponenteCombate != nullptr)
 	{
-		ComponenteCombate->VidaMaxima = 50.0f;
+		// CONFIGURACIÓN ANTERIOR RESCATADA
+		ComponenteCombate->VidaMaxima = 2000.0f;
 		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
 		ComponenteCombate->Faccion = FName("Jugador");
 	}
 
-	// Inicialización añadida para el Game Over
 	bMuerto = false;
 	WidgetGameOverClass = nullptr;
 }
@@ -136,9 +139,9 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 	AddMovementInput(GetActorRightVector(), RightValue);
 	AddMovementInput(GetActorUpVector(), UpValue);
 
+	// NUEVA LÓGICA DE DISPARO CONTINUO
 	if (bEstaDisparando && bCanFire)
 	{
-		// Solo le pedimos al Pawn que inicie la secuencia de disparo hacia adelante
 		FireShot(GetActorForwardVector());
 	}
 
@@ -177,10 +180,10 @@ void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 {
 	if (EstadoActual != nullptr)
 	{
+		// Delega la forma de disparar al estado (Nave o Robot)
 		EstadoActual->EjecutarAtaque(this, FireDirection);
 	}
 
-	// 2. GESTIONAMOS EL REARME DEL ARMA
 	bCanFire = false;
 	GetWorld()->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &AGalagaModificadoMacPawn::ShotTimerExpired, FireRate);
 
@@ -194,14 +197,6 @@ void AGalagaModificadoMacPawn::ShotTimerExpired()
 {
 	bCanFire = true;
 }
-/*
-void AGalagaModificadoMacPawn::Disparar()
-{
-	if (EstadoActual != nullptr)
-	{
-		EstadoActual->EjecutarAtaque(this);
-	}
-}*/
 
 void AGalagaModificadoMacPawn::EmpezarDisparo()
 {
@@ -260,6 +255,7 @@ void AGalagaModificadoMacPawn::Transformar()
 	}
 }
 
+// LÓGICA DE DISPARO ANTERIOR RESCATADA Y ADAPTADA AL NUEVO ESTADO
 void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
 	UWorld* const World = NaveContexto->GetWorld();
@@ -269,19 +265,47 @@ void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto,
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = NaveContexto;
 
-		float SeparacionCanones = 23.0f;
-		FVector OffsetIzquierdo = FVector(NaveContexto->GunOffset.X, -SeparacionCanones, NaveContexto->GunOffset.Z);
-		FVector OffsetDerecho = FVector(NaveContexto->GunOffset.X, SeparacionCanones, NaveContexto->GunOffset.Z);
+		if (NaveContexto->BombasRacimoRestantes > 0)
+		{
+			NaveContexto->BombasRacimoRestantes--;
+			for (int i = 0; i < 8; i++)
+			{
+				FRotator RacimoRot = FireRotation;
+				RacimoRot.Yaw += (45.0f * i);
+				World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
+			}
+		}
+		else if (NaveContexto->TiempoDisparoCuadruple > 0.0f)
+		{
+			float Sep1 = 15.0f;
+			float Sep2 = 45.0f;
 
-		FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
-		FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
+			FVector Izq1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep1, NaveContexto->GunOffset.Z));
+			FVector Der1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep1, NaveContexto->GunOffset.Z));
+			FVector Izq2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep2, NaveContexto->GunOffset.Z));
+			FVector Der2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep2, NaveContexto->GunOffset.Z));
 
-		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
-		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
+		}
+		else
+		{
+			float SeparacionCanones = 23.0f;
+			FVector OffsetIzquierdo = FVector(NaveContexto->GunOffset.X, -SeparacionCanones, NaveContexto->GunOffset.Z);
+			FVector OffsetDerecho = FVector(NaveContexto->GunOffset.X, SeparacionCanones, NaveContexto->GunOffset.Z);
+
+			FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
+			FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
+
+			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
+			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+		}
 	}
 }
 
-void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection	)
+void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡Los robots no pueden disparar!"));
 }
@@ -296,7 +320,6 @@ float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent cons
 	{
 		DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
 
-		// Lógica de muerte y Game Over
 		if (!bMuerto && ComponenteCombate->VidaActual <= 0.0f)
 		{
 			bMuerto = true;
@@ -309,10 +332,8 @@ float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent cons
 
 void AGalagaModificadoMacPawn::ManejarMuerte()
 {
-	// 1. Pausar el juego
 	UGameplayStatics::SetGamePaused(GetWorld(), true);
 
-	// 2. Configurar el modo de entrada para la UI y mostrar el cursor
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (PC)
 	{
@@ -322,7 +343,8 @@ void AGalagaModificadoMacPawn::ManejarMuerte()
 		PC->bShowMouseCursor = true;
 	}
 
-	// 3. Crear y mostrar el widget de Game Over
+	OnDeathEvent();   // <--- NUEVA LLAMADA
+
 	if (WidgetGameOverClass)
 	{
 		UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(GetWorld(), WidgetGameOverClass);
@@ -333,7 +355,22 @@ void AGalagaModificadoMacPawn::ManejarMuerte()
 	}
 }
 
-// PATRON DECORATOR
+// FUNCIONES DE VIDA ANTERIORES RESCATADAS
+float AGalagaModificadoMacPawn::GetVidaActual() const
+{
+	if (ComponenteCombate)
+		return ComponenteCombate->VidaActual;
+	return 0.0f;
+}
+
+float AGalagaModificadoMacPawn::GetVidaMaxima() const
+{
+	if (ComponenteCombate)
+		return ComponenteCombate->VidaMaxima;
+	return 1.0f;
+}
+
+// PATRÓN DECORATOR
 FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
 	if (Contexto && Contexto->ComponenteCombate) {
@@ -349,9 +386,7 @@ FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaM
 
 void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	// Ejecutamos el disparo original
 	FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
-	// (Aquí irá la lógica futura de spawnear las 3 balas adicionales)
 }
 
 FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)

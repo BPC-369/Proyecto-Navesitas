@@ -14,7 +14,7 @@ ANaveComando::ANaveComando()
 
 	if (ComponenteCombate != nullptr)
 	{
-		ComponenteCombate->VidaMaxima = 50.0f;
+		ComponenteCombate->VidaMaxima = 2500.0f;
 		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
