@@ -71,69 +71,43 @@ void ABonificacion::NotifyActorBeginOverlap(AActor* OtherActor)
 {
 	Super::NotifyActorBeginOverlap(OtherActor);
 
-	// Verificamos si quien nos tocó fue el jugador
 	AGalagaModificadoMacPawn* Jugador = Cast<AGalagaModificadoMacPawn>(OtherActor);
 
 	if (Jugador)
 	{
-		// Descubrimos la forma actual leyendo el motor de físicas
+		// 1. Leemos si está en forma Nave o Robot usando tu método actual
 		bool bEsNave = (Jugador->GetCharacterMovement()->MovementMode == MOVE_Flying);
 		int32 EfectoAlAzar = FMath::RandRange(1, 4);
 
+		// 2. Extraemos el estado que tiene el jugador ahora mismo
+		IEstadoNave* EstadoAEnvolver = Jugador->EstadoActual;
+
+		// 3. Preparamos un puntero para el nuevo súper-estado
+		IEstadoNave* NuevoEstadoMejorado = nullptr;
+
+		// 4. Elegimos la envoltura (Decorador)
 		if (bEsNave)
 		{
-			switch (EfectoAlAzar)
-			{
-			case 1: // Recuperación Total
-				if (Jugador->ComponenteCombate) {
-					Jugador->ComponenteCombate->VidaActual = Jugador->ComponenteCombate->VidaMaxima;
-					Jugador->ComponenteCombate->EscudoActual = Jugador->ComponenteCombate->EscudoMaximo;
-				}
-				break;
-			case 2: // Cuádruple Cañón
-				Jugador->TiempoDisparoCuadruple = 10.0f; // Dura 10 segundos
-				break;
-			case 3: // Bombas Racimo
-				Jugador->BombasRacimoRestantes += 6; // Suma 6 disparos especiales
-				break;
-			case 4: // Super Buffo Nave
-				Jugador->VelocidadOriginalNave = Jugador->MoveSpeed;
-				Jugador->MoveSpeed *= 2.0f;
-				Jugador->GetCharacterMovement()->MaxFlySpeed = Jugador->MoveSpeed;
-				Jugador->MultiplicadorDanio = 1.5f;
-				Jugador->TiempoBuffoNave = 8.0f;
-				break;
-			}
+			if (EfectoAlAzar == 1) NuevoEstadoMejorado = new FDecoradorRecuperacionNave(EstadoAEnvolver, Jugador);
+			else if (EfectoAlAzar == 2) NuevoEstadoMejorado = new FDecoradorCuadrupleCanon(EstadoAEnvolver, Jugador);
+			else if (EfectoAlAzar == 3) NuevoEstadoMejorado = new FDecoradorBombasRacimo(EstadoAEnvolver, Jugador);
+			else if (EfectoAlAzar == 4) NuevoEstadoMejorado = new FDecoradorSuperBuffoNave(EstadoAEnvolver, Jugador);
 		}
 		else
 		{
-			switch (EfectoAlAzar)
-			{
-			case 1: // Buffo Velocidad y Dash
-				Jugador->MoveSpeed = 800.0f; // Velocidad aumentada
-				Jugador->GetCharacterMovement()->MaxWalkSpeed = Jugador->MoveSpeed;
-				Jugador->TiempoBuffoRobot = 10.0f;
-				break;
-			case 2: // Cortes a distancia
-				Jugador->TiempoCortesDistancia = 12.0f;
-				break;
-			case 3: // Recuperación Total Robot
-				if (Jugador->ComponenteCombate) {
-					Jugador->ComponenteCombate->VidaActual = Jugador->ComponenteCombate->VidaMaxima;
-					Jugador->ComponenteCombate->EscudoActual = Jugador->ComponenteCombate->EscudoMaximo;
-				}
-				break;
-			case 4: // Inmunidad + Doble Daño
-				Jugador->TiempoInmunidad = 8.0f;
-				Jugador->MultiplicadorDanio = 2.0f;
-				break;
-			}
+			if (EfectoAlAzar == 1) NuevoEstadoMejorado = new FDecoradorVelocidadDash(EstadoAEnvolver, Jugador);
+			else if (EfectoAlAzar == 2) NuevoEstadoMejorado = new FDecoradorCortesDistancia(EstadoAEnvolver, Jugador);
+			else if (EfectoAlAzar == 3) NuevoEstadoMejorado = new FDecoradorRecuperacionRobot(EstadoAEnvolver, Jugador);
+			else if (EfectoAlAzar == 4) NuevoEstadoMejorado = new FDecoradorInmunidad(EstadoAEnvolver, Jugador);
 		}
 
-		// Opcional: Reproducir sonido de recolección
-		// if (SonidoRecoleccion) UGameplayStatics::PlaySoundAtLocation(this, SonidoRecoleccion, GetActorLocation());
+		// 5. Inyectamos el nuevo comportamiento en el jugador
+		if (NuevoEstadoMejorado != nullptr)
+		{
+			// Reemplazamos su estado actual por la versión decorada
+			Jugador->EstadoActual = NuevoEstadoMejorado;
+		}
 
-		// Nos destruimos al ser recogidos
 		Destroy();
 	}
 }

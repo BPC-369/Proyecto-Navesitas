@@ -19,7 +19,7 @@ ANaveComando::ANaveComando()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickUFO.TwinStickUFO'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/pawn/comando03.comando03'"));
 	if (MeshComando.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(MeshComando.Object);

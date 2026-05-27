@@ -18,7 +18,7 @@ ANaveKamikase::ANaveKamikase() {
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Forma(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_WideCapsule.Shape_WideCapsule'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Forma(TEXT("StaticMesh'/Game/Geometry/pawn/kamikase01.kamikase01'"));
 	if (Forma.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(Forma.Object);
