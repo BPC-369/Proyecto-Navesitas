@@ -136,9 +136,10 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 	AddMovementInput(GetActorRightVector(), RightValue);
 	AddMovementInput(GetActorUpVector(), UpValue);
 
-	if (bEstaDisparando)
+	if (bEstaDisparando && bCanFire)
 	{
-		Disparar();
+		// Solo le pedimos al Pawn que inicie la secuencia de disparo hacia adelante
+		FireShot(GetActorForwardVector());
 	}
 
 	if (TiempoDisparoCuadruple > 0.0f) TiempoDisparoCuadruple -= DeltaSeconds;
@@ -174,64 +175,18 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 
 void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 {
-	if (bCanFire == true)
+	if (EstadoActual != nullptr)
 	{
-		if (FireDirection.SizeSquared() > 0.0f)
-		{
-			const FRotator FireRotation = FireDirection.Rotation();
-			UWorld* const World = GetWorld();
+		EstadoActual->EjecutarAtaque(this, FireDirection);
+	}
 
-			if (World != nullptr)
-			{
-				FActorSpawnParameters SpawnParams;
-				SpawnParams.Owner = this;
+	// 2. GESTIONAMOS EL REARME DEL ARMA
+	bCanFire = false;
+	GetWorld()->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &AGalagaModificadoMacPawn::ShotTimerExpired, FireRate);
 
-				if (BombasRacimoRestantes > 0)
-				{
-					BombasRacimoRestantes--;
-					for (int i = 0; i < 8; i++)
-					{
-						FRotator RacimoRot = FireRotation;
-						RacimoRot.Yaw += (45.0f * i);
-						World->SpawnActor<AGalagaModificadoMacProjectile>(GetActorLocation(), RacimoRot, SpawnParams);
-					}
-				}
-				else if (TiempoDisparoCuadruple > 0.0f)
-				{
-					float Sep1 = 15.0f;
-					float Sep2 = 45.0f;
-
-					FVector Izq1 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, -Sep1, GunOffset.Z));
-					FVector Der1 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, Sep1, GunOffset.Z));
-					FVector Izq2 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, -Sep2, GunOffset.Z));
-					FVector Der2 = GetActorLocation() + FireRotation.RotateVector(FVector(GunOffset.X, Sep2, GunOffset.Z));
-
-					World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
-					World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
-					World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
-					World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
-				}
-				else
-				{
-					float SeparacionCanones = 23.0f;
-					FVector OffsetIzquierdo = FVector(GunOffset.X, -SeparacionCanones, GunOffset.Z);
-					FVector OffsetDerecho = FVector(GunOffset.X, SeparacionCanones, GunOffset.Z);
-					FVector SpawnLocationIzquierdo = GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
-					FVector SpawnLocationDerecho = GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
-
-					World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
-					World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
-				}
-
-				bCanFire = false;
-				World->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &AGalagaModificadoMacPawn::ShotTimerExpired, FireRate);
-
-				if (FireSound != nullptr)
-				{
-					UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
-				}
-			}
-		}
+	if (FireSound != nullptr)
+	{
+		UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 	}
 }
 
@@ -239,19 +194,18 @@ void AGalagaModificadoMacPawn::ShotTimerExpired()
 {
 	bCanFire = true;
 }
-
+/*
 void AGalagaModificadoMacPawn::Disparar()
 {
 	if (EstadoActual != nullptr)
 	{
 		EstadoActual->EjecutarAtaque(this);
 	}
-}
+}*/
 
 void AGalagaModificadoMacPawn::EmpezarDisparo()
 {
 	bEstaDisparando = true;
-	Disparar();
 }
 
 void AGalagaModificadoMacPawn::DetenerDisparo()
@@ -306,12 +260,28 @@ void AGalagaModificadoMacPawn::Transformar()
 	}
 }
 
-void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto)
+void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	NaveContexto->FireShot(NaveContexto->GetActorForwardVector());
+	UWorld* const World = NaveContexto->GetWorld();
+	if (World != nullptr)
+	{
+		const FRotator FireRotation = FireDirection.Rotation();
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = NaveContexto;
+
+		float SeparacionCanones = 23.0f;
+		FVector OffsetIzquierdo = FVector(NaveContexto->GunOffset.X, -SeparacionCanones, NaveContexto->GunOffset.Z);
+		FVector OffsetDerecho = FVector(NaveContexto->GunOffset.X, SeparacionCanones, NaveContexto->GunOffset.Z);
+
+		FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
+		FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
+
+		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
+		World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+	}
 }
 
-void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto)
+void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection	)
 {
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡Los robots no pueden disparar!"));
 }
@@ -361,4 +331,70 @@ void AGalagaModificadoMacPawn::ManejarMuerte()
 			GameOverWidget->AddToViewport();
 		}
 	}
+}
+
+// PATRON DECORATOR
+FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	if (Contexto && Contexto->ComponenteCombate) {
+		Contexto->ComponenteCombate->VidaActual = Contexto->ComponenteCombate->VidaMaxima;
+		Contexto->ComponenteCombate->EscudoActual = Contexto->ComponenteCombate->EscudoMaximo;
+	}
+}
+
+FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	Contexto->TiempoDisparoCuadruple = 10.0f;
+}
+
+void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
+{
+	// Ejecutamos el disparo original
+	FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+	// (Aquí irá la lógica futura de spawnear las 3 balas adicionales)
+}
+
+FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	Contexto->BombasRacimoRestantes += 6;
+}
+
+FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	Contexto->VelocidadOriginalNave = Contexto->MoveSpeed;
+	Contexto->MoveSpeed *= 2.0f;
+	Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
+	Contexto->MultiplicadorDanio = 1.5f;
+	Contexto->TiempoBuffoNave = 8.0f;
+}
+
+FDecoradorVelocidadDash::FDecoradorVelocidadDash(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	Contexto->MoveSpeed = 800.0f;
+	Contexto->GetCharacterMovement()->MaxWalkSpeed = Contexto->MoveSpeed;
+	Contexto->TiempoBuffoRobot = 10.0f;
+}
+
+FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	Contexto->TiempoCortesDistancia = 12.0f;
+}
+
+void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
+{
+	// (Aquí irá la lógica de las ondas de corte del robot)
+}
+
+FDecoradorRecuperacionRobot::FDecoradorRecuperacionRobot(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	if (Contexto && Contexto->ComponenteCombate) {
+		Contexto->ComponenteCombate->VidaActual = Contexto->ComponenteCombate->VidaMaxima;
+		Contexto->ComponenteCombate->EscudoActual = Contexto->ComponenteCombate->EscudoMaximo;
+	}
+}
+
+FDecoradorInmunidad::FDecoradorInmunidad(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
+{
+	Contexto->TiempoInmunidad = 8.0f;
+	Contexto->MultiplicadorDanio = 2.0f;
 }
