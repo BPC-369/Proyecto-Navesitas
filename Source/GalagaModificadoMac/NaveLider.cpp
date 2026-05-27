@@ -21,7 +21,7 @@ ANaveLider::ANaveLider()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 	// Buscamos la malla de la Nave Comando
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickUFO.TwinStickUFO'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/Geometry/pawn/navlider03.navlider03'"));
 
 	if (MeshAsset.Succeeded())
 	{
@@ -61,7 +61,7 @@ void ANaveLider::Atacar()
 		const FRotator RotacionDisparo = GetActorRotation();
 
 		//Colocamos la Bala un poco por delante de la nave para que no choque con ella al nacer.
-		const FVector PosicionDisparo = GetActorLocation() + (GetActorForwardVector() * 100.0f);
+		const FVector PosicionDisparo = GetActorLocation() + (GetActorForwardVector() * 180.0f);
 
 		// indicamos que esta nave es la dueña de la bala que va a nacer
 		FActorSpawnParameters SpawnParams;

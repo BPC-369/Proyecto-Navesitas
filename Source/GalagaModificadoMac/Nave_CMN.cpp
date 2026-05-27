@@ -25,7 +25,7 @@ ANave_CMN::ANave_CMN()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCono(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickUFO.TwinStickUFO'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCono(TEXT("StaticMesh'/Game/Geometry/pawn/comun01.comun01'"));
 	if (FormaCono.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(FormaCono.Object);
@@ -63,20 +63,33 @@ void ANave_CMN::Atacar()
 {
 	UWorld* const World = GetWorld();
 
-	// Escudo protector: Validamos que el mundo exista
 	if (World != nullptr)
 	{
-		//Tomamos la rotación actual de la nave para que la bala salga disparada hacia adelante.
 		const FRotator RotacionDisparo = GetActorRotation();
 
-		//Colocamos la Bala un poco por delante de la nave para que no choque con ella al nacer.
-		const FVector PosicionDisparo = GetActorLocation() + (GetActorForwardVector() * 100.0f);
+		// 1. Definimos las distancias
+		float DistanciaFrontal = 50.0f; // Para que no choque con la nave
+		float SeparacionLateral = 80.0f; // Ajusta este número para separar más o menos las balas
 
-		// indicamos que esta nave es la dueña de la bala que va a nacer
+		// 2. Obtenemos la posición y las direcciones de la nave
+		FVector PosicionBase = GetActorLocation();
+		FVector DireccionFrontal = GetActorForwardVector();
+		FVector DireccionDerecha = GetActorRightVector();
+
+		// 3. Calculamos la posición exacta de cada "cañón"
+		// Cañón Derecho: Posición de la nave + Mover Adelante + Mover a la Derecha
+		FVector PosicionDisparoDerecha = PosicionBase + (DireccionFrontal * DistanciaFrontal) + (DireccionDerecha * SeparacionLateral);
+
+		// Cañón Izquierdo: Posición de la nave + Mover Adelante - Mover a la Derecha (es decir, a la izquierda)
+		FVector PosicionDisparoIzquierda = PosicionBase + (DireccionFrontal * DistanciaFrontal) - (DireccionDerecha * SeparacionLateral);
+
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
 
-		// Le pasamos SpawnParams al final para que la bala nazca sabiendo quién es su padre.
-		World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparo, RotacionDisparo, SpawnParams);
+		// 4. Hacemos aparecer (Spawn) la bala derecha
+		World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparoDerecha, RotacionDisparo, SpawnParams);
+
+		// 5. Hacemos aparecer (Spawn) la bala izquierda
+		World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparoIzquierda, RotacionDisparo, SpawnParams);
 	}
 }

@@ -18,23 +18,100 @@ public:
 	virtual ~IEstadoNave() = default;
 
 	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) = 0;
-	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto) = 0;
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) = 0;
 };
 
 class FEstadoNaveVoladora : public IEstadoNave
 {
 public:
 	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) override;
-	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
 };
 
 class FEstadoNaveRobot : public IEstadoNave
 {
 public:
 	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) override;
-	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
 };
 // --- FIN DEL PATRÓN STATE ---
+
+// --- INICIO DEL PATRÓN DECORATOR ---
+
+// 1. EL DECORADOR BASE (La Envoltura)
+class FDecoradorBonificacion : public IEstadoNave
+{
+protected:
+	IEstadoNave* EstadoEnvuelto; // El estado o poder que estamos envolviendo
+
+public:
+	FDecoradorBonificacion(IEstadoNave* Estado) : EstadoEnvuelto(Estado) {}
+
+	// ¡CRÍTICO PARA LA MEMORIA! Al destruirse, destruye lo que envuelve en cadena.
+	virtual ~FDecoradorBonificacion() {
+		if (EstadoEnvuelto) {
+			delete EstadoEnvuelto;
+		}
+	}
+
+	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) override {
+		if (EstadoEnvuelto) EstadoEnvuelto->EjecutarTransformacion(NaveContexto);
+	}
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override {
+		if (EstadoEnvuelto) EstadoEnvuelto->EjecutarAtaque(NaveContexto, FireDirection);
+	}
+};
+
+// ==========================================
+// 2. LAS 4 BONIFICACIONES DE LA NAVE
+// ==========================================
+
+class FDecoradorRecuperacionNave : public FDecoradorBonificacion {
+public:
+	FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+};
+
+class FDecoradorCuadrupleCanon : public FDecoradorBonificacion {
+public:
+	FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
+};
+
+class FDecoradorBombasRacimo : public FDecoradorBonificacion {
+public:
+	FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+};
+
+class FDecoradorSuperBuffoNave : public FDecoradorBonificacion {
+public:
+	FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+};
+
+// ==========================================
+// 3. LAS 4 BONIFICACIONES DEL ROBOT (Solo Declaraciones)
+// ==========================================
+
+class FDecoradorVelocidadDash : public FDecoradorBonificacion {
+public:
+	FDecoradorVelocidadDash(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+};
+
+class FDecoradorCortesDistancia : public FDecoradorBonificacion {
+public:
+	FDecoradorCortesDistancia(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
+};
+
+class FDecoradorRecuperacionRobot : public FDecoradorBonificacion {
+public:
+	FDecoradorRecuperacionRobot(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+};
+
+class FDecoradorInmunidad : public FDecoradorBonificacion {
+public:
+	FDecoradorInmunidad(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto);
+};
+// --- FIN DEL PATRÓN DECORATOR ---
 
 UCLASS(Blueprintable)
 class AGalagaModificadoMacPawn : public ACharacter
