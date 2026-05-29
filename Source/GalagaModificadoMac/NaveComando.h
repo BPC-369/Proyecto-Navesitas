@@ -16,7 +16,7 @@ public:
 protected:
 	virtual void BeginPlay() override;
 
-	// Firma exacta de la funci?n de da?o
+	// Firma exacta de la funcion de dano
 	//virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 public:

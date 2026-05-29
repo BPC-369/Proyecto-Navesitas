@@ -6,10 +6,11 @@
 #include "Components/StaticMeshComponent.h"
 #include "ProyectilJefe.h"
 #include "ComponenteCombate.h"
+#include "Components/PrimitiveComponent.h"
 
 ANaveComando::ANaveComando()
 {
-	Velocidad = 80.0f;
+	Velocidad = 10.0f;
 	FrecuenciaAtaque = 2.0f;
 
 	if (ComponenteCombate != nullptr)
@@ -19,11 +20,12 @@ ANaveComando::ANaveComando()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/pawn/comando03.comando03'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow05.StarSparrow05'"));
 	if (MeshComando.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(MeshComando.Object);
-		MallaEnemiga->SetRelativeScale3D(FVector(5.0f, 5.0f, 5.0f));
+		MallaEnemiga->SetRelativeScale3D(FVector(4.0f, 4.0f, 4.0f));
+		MallaEnemiga->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	}
 }
 
@@ -33,53 +35,7 @@ void ANaveComando::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(TimerAtaque, this, &ANaveComando::Atacar, FrecuenciaAtaque, true);
 	GetWorld()->GetTimerManager().SetTimer(TimerSpawn, this, &ANaveComando::GestionarEscoltas, 2.5f, true);
 }
-//aqui evitamos el da?o aliado excluyendo la clase 
-/*
-float ANaveComando::TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser)
-{
-	if (!DamageCauser) return 0.0f;
 
-	// 1. Buscamos al causante del da?o
-	AActor* Tirador = DamageCauser->GetOwner();
-
-	// 2. Si no hay Tirador, intentamos usar al Instigator
-	if (!Tirador && EventInstigator)
-	{
-		Tirador = EventInstigator->GetPawn();
-	}
-
-	if (Tirador)
-	{
-		// Si el que me dispar? es una Nave Enemiga (Cualquier tipo), da?o CERO.
-		// Esto incluye a otras NaveComando y a todas las Nave_CMN (comunes).
-		if (Tirador->IsA(ANaveEnemigoAereo::StaticClass()))
-		{
-			return 0.0f;
-		}
-
-		// Filtro de respaldo por Facci?n
-		AEntidadCombate* EntidadTiradora = Cast<AEntidadCombate>(Tirador);
-		if (EntidadTiradora && EntidadTiradora->Faccion == this->Faccion)
-		{
-			return 0.0f;
-		}
-	}
-
-	// 3. Si pas? los filtros, solo puede ser el Jugador.
-	VidaActual -= DamageAmount;
-
-	if (GEngine)
-	{
-		FString NombreAtacante = Tirador ? Tirador->GetName() : TEXT("Desconocido");
-		GEngine->AddOnScreenDebugMessage(-1, 0.5f, FColor::Red,
-			FString::Printf(TEXT("DA?O REAL de: %s | Vida: %.1f"), *NombreAtacante, VidaActual));
-	}
-
-	if (VidaActual <= 0) { Destroy(); }
-
-	return Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-}
-*/
 //la nave ataca de frente y laterales
 void ANaveComando::Atacar()
 {
@@ -129,9 +85,11 @@ void ANaveComando::GestionarEscoltas()
 				{
 					CompEscolta->Faccion = ComponenteCombate->Faccion;
 				}
-
-				// 3. Ignoramos colisiones entre la nave comando y su escolta
-				NuevaEscolta->MoveIgnoreActorAdd(this);
+				UPrimitiveComponent* ColliderEscolta = NuevaEscolta->FindComponentByClass<UPrimitiveComponent>();
+				if (ColliderEscolta)
+				{
+					ColliderEscolta->IgnoreActorWhenMoving(this, true); // <--- CORRECCIÓN AQUÍ
+				}
 
 				// 4. Agregamos a la lista
 				EscoltasActivas.Add(NuevaEscolta);

@@ -36,7 +36,11 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	ShipMeshComponent->SetupAttachment(GetCapsuleComponent());
 	ShipMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/Geometry/pawn/pawn06.pawn06'"));
+	// AQUI SE CORRIGE LA ROTACIÓN DE LA NAVE HACIA EL FRENTE
+	ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+
+	// MALLA STARSPARROW04 MORADA CONFIGURADA AQUÍ
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow04.StarSparrow04'"));
 	if (FormaNave.Succeeded()) RopaNave = FormaNave.Object;
 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCubo(TEXT("StaticMesh'/Game/Geometry/pawn/pawn09.pawn09'"));
@@ -48,8 +52,10 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("BrazoCamara3D"));
 	CameraBoom->SetupAttachment(RootComponent);
 	CameraBoom->SetUsingAbsoluteRotation(false);
-	CameraBoom->TargetArmLength = 250.f;
-	CameraBoom->SetRelativeRotation(FRotator(-10.f, 0.f, 0.f));
+
+	// AQUI SE ALEJA LA CÁMARA (1200.f en lugar de 250.f)
+	CameraBoom->TargetArmLength = 1200.f;
+	CameraBoom->SetRelativeRotation(FRotator(-15.f, 0.f, 0.f));
 	CameraBoom->SocketOffset = FVector(0.f, 0.f, 50.f);
 	CameraBoom->bDoCollisionTest = true;
 
@@ -60,7 +66,6 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
 
-	// CONFIGURACIÓN ANTERIOR RESCATADA
 	MoveSpeed = 1500.0f;
 	VelocidadOriginalNave = 1500.0f;
 
@@ -85,7 +90,6 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	if (ComponenteCombate != nullptr)
 	{
-		// CONFIGURACIÓN ANTERIOR RESCATADA
 		ComponenteCombate->VidaMaxima = 2000.0f;
 		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
 		ComponenteCombate->Faccion = FName("Jugador");
@@ -98,6 +102,11 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 void AGalagaModificadoMacPawn::BeginPlay()
 {
 	Super::BeginPlay();
+	if (ShipMeshComponent)
+	{
+		ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+		// Nota: Si con -90.f la nave mira hacia ti en lugar de hacia adelante, cámbialo a 90.f positivo.
+	}
 	ConvertirEnNave();
 }
 
@@ -139,7 +148,6 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 	AddMovementInput(GetActorRightVector(), RightValue);
 	AddMovementInput(GetActorUpVector(), UpValue);
 
-	// NUEVA LÓGICA DE DISPARO CONTINUO
 	if (bEstaDisparando && bCanFire)
 	{
 		FireShot(GetActorForwardVector());
@@ -180,7 +188,6 @@ void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 {
 	if (EstadoActual != nullptr)
 	{
-		// Delega la forma de disparar al estado (Nave o Robot)
 		EstadoActual->EjecutarAtaque(this, FireDirection);
 	}
 
@@ -197,14 +204,6 @@ void AGalagaModificadoMacPawn::ShotTimerExpired()
 {
 	bCanFire = true;
 }
-/*
-void AGalagaModificadoMacPawn::Disparar()
-{
-	if (EstadoActual != nullptr)
-	{
-		EstadoActual->EjecutarAtaque(this);
-	}
-}*/
 
 void AGalagaModificadoMacPawn::EmpezarDisparo()
 {
@@ -251,7 +250,6 @@ void AGalagaModificadoMacPawn::Transformar()
 	}
 }
 
-// LÓGICA DE DISPARO ANTERIOR RESCATADA Y ADAPTADA AL NUEVO ESTADO
 void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
 	UWorld* const World = NaveContexto->GetWorld();
@@ -339,7 +337,7 @@ void AGalagaModificadoMacPawn::ManejarMuerte()
 		PC->bShowMouseCursor = true;
 	}
 
-	OnDeathEvent();   // <--- NUEVA LLAMADA
+	OnDeathEvent();
 
 	if (WidgetGameOverClass)
 	{
@@ -351,7 +349,6 @@ void AGalagaModificadoMacPawn::ManejarMuerte()
 	}
 }
 
-// FUNCIONES DE VIDA ANTERIORES RESCATADAS
 float AGalagaModificadoMacPawn::GetVidaActual() const
 {
 	if (ComponenteCombate)
@@ -394,7 +391,6 @@ FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModif
 
 void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	// Si aún nos queda munición...
 	if (NaveContexto->BombasRacimoRestantes > 0)
 	{
 		UWorld* const World = NaveContexto->GetWorld();
@@ -404,9 +400,8 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = NaveContexto;
 
-			NaveContexto->BombasRacimoRestantes--; // Restamos una bomba
+			NaveContexto->BombasRacimoRestantes--;
 
-			// Generamos las 8 balas en círculo
 			for (int i = 0; i < 8; i++)
 			{
 				FRotator RacimoRot = FireRotation;
@@ -417,7 +412,6 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
 	}
 	else
 	{
-		// Si no hay munición, delegamos al disparo normal
 		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
 	}
 }
@@ -455,7 +449,6 @@ void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCon
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = NaveContexto;
 
-			// Disparamos un solo proyectil central simulando el corte de la espada
 			FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
 			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
 
@@ -464,7 +457,6 @@ void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCon
 	}
 	else
 	{
-		// Si se acabó el tiempo, el robot vuelve a no poder disparar
 		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
 	}
 }
@@ -481,4 +473,31 @@ FDecoradorInmunidad::FDecoradorInmunidad(IEstadoNave* Estado, AGalagaModificadoM
 {
 	Contexto->TiempoInmunidad = 8.0f;
 	Contexto->MultiplicadorDanio = 2.0f;
+}
+
+// IMPLEMENTACIONES PARA ESTADOS DE TRANSFORMACIÓN
+void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
+{
+	if (NaveContexto != nullptr)
+	{
+		NaveContexto->ConvertirEnRobot();
+		NaveContexto->CambiarEstado(new FEstadoNaveRobot());
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("¡Transformación: Modo Robot Activo!"));
+	}
+}
+
+void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
+{
+	if (NaveContexto != nullptr)
+	{
+		NaveContexto->ConvertirEnNave();
+		NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
+		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("¡Transformación: Modo Nave Activo!"));
+	}
+}
+
+// IMPLEMENTACIÓN PARA DETECTAR COLISIONES (OVERLAP)
+void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
 }

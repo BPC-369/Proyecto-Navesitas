@@ -1,5 +1,6 @@
 #include "NaveEnemigoAereo.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SceneComponent.h" // Incluido para la raíz neutral de escena
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
 #include "ComponenteCombate.h" // Incluimos tu chip de vida
@@ -8,16 +9,20 @@ ANaveEnemigoAereo::ANaveEnemigoAereo()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// 1. Creamos la malla visual
+	// 1. Creamos un componente de escena vacío para que sea la NUEVA RAÍZ neutral del Actor
+	USceneComponent* EscenaRaiz = CreateDefaultSubobject<USceneComponent>(TEXT("EscenaRaiz"));
+	RootComponent = EscenaRaiz;
+
+	// 2. Creamos la malla visual
 	MallaEnemiga = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaEnemiga"));
 
-	// 2. SOLUCIÓN DE RAÍZ: Como el Pawn nace sin cuerpo, convertimos la malla en el cuerpo principal
-	RootComponent = MallaEnemiga;
+	// 3. Colgamos la malla de la raíz neutral (así se puede rotar de forma independiente)
+	MallaEnemiga->SetupAttachment(RootComponent);
 
 	MallaEnemiga->SetNotifyRigidBodyCollision(true);
 	MallaEnemiga->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 
-	// 3. Instalamos el chip de estadísticas de combate
+	// 4. Instalamos el chip de estadísticas de combate
 	ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
 
 	if (ComponenteCombate != nullptr)
@@ -58,7 +63,7 @@ void ANaveEnemigoAereo::Volar(float DeltaSeconds)
 
 void ANaveEnemigoAereo::Atacar()
 {
-	
+
 }
 
 // 4. El puente que conecta los golpes recibidos con las matemáticas de tu chip

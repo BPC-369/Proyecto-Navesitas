@@ -89,7 +89,7 @@ public:
 };
 
 // ==========================================
-// 3. LAS 4 BONIFICACIONES DEL ROBOT (Solo Declaraciones)
+// 3. LAS 4 BONIFICACIONES DEL ROBOT
 // ==========================================
 
 class FDecoradorVelocidadDash : public FDecoradorBonificacion {
@@ -157,7 +157,6 @@ public:
 	virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
 	void FireShot(FVector FireDirection);
-	//void Disparar();
 	void ShotTimerExpired();
 	void EmpezarDisparo();
 	void DetenerDisparo();
@@ -186,7 +185,7 @@ private:
 	uint32 bCanFire : 1;
 	FTimerHandle TimerHandle_ShotTimerExpired;
 
-	bool bMuerto = false;   // <- Añadido para el Game Over
+	bool bMuerto = false; // Añadido para el Game Over
 
 	UStaticMesh* RopaNave;
 	UStaticMesh* RopaCubo;
@@ -197,19 +196,18 @@ public:
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
 
 	void Transformar();
-	void ManejarMuerte();   // <- Añadido
+	void ManejarMuerte();
 
 	// --- EVENTO PARA EL BLUEPRINT (DETENER MÚSICA AL MORIR) ---
 	UFUNCTION(BlueprintImplementableEvent, Category = "Muerte")
 		void OnDeathEvent();
 
-	// --- FUNCIONES RESTAURADAS DEL CÓDIGO ANTERIOR ---
+	// --- FUNCIONES DE VIDA ---
 	UFUNCTION(BlueprintCallable, Category = "Combate")
 		float GetVidaActual() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Combate")
 		float GetVidaMaxima() const;
-	// --------------------------------------------------
 
 	IEstadoNave* EstadoActual;
 
