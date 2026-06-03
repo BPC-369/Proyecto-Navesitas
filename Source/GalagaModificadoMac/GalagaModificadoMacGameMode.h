@@ -2,8 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+#include "GalagaModificadoMacGameMode.generated.h"
 
-// Declaraciones anticipadas para no saturar el compilador
+// DECLARACIONES ANTICIPADAS (Obligatorias para que no falle la línea 12 ni los TArray)
+class UFacadeGeneradorNiveles;
 class ANaveComando;
 class ATorreta;
 class ARobot_Lider;
@@ -11,8 +13,6 @@ class ANaveLider;
 class ANaveKamikase;
 class ANave_CMN;
 class ARobotFrancotirador;
-
-#include "GalagaModificadoMacGameMode.generated.h"
 
 UCLASS()
 class GALAGAMODIFICADOMAC_API AGalagaModificadoMacGameMode : public AGameModeBase
@@ -22,34 +22,47 @@ class GALAGAMODIFICADOMAC_API AGalagaModificadoMacGameMode : public AGameModeBas
 public:
 	AGalagaModificadoMacGameMode();
 
+protected:
 	virtual void BeginPlay() override;
 
-	// La función maestra que invocará al ejército
-	void GenerarEjercito();
-
-	// --- CONTENEDORES PUROS DE C++ (SIN UPROPERTY) ---
-	TArray<ANaveComando*> ListaNavesComando;
-	TArray<ATorreta*> ListaTorretas;
-	TArray<ARobot_Lider*> ListaRobotsLider;
-	TArray<ANaveLider*> ListaNavesLider;
-	TArray<ANaveKamikase*> ListaNavesKamikase;
-	TArray<ANave_CMN*> ListaNavesCMN;
-	TArray<ARobotFrancotirador*> ListaFrancotiradores;
-
-	// Gerente de Niveles (Facade)
-	UPROPERTY()
-	class UFacadeGeneradorNiveles* GerenteDeNiveles;
-
-private:
-	// --- VARIABLES MODIFICABLES DESDE EL CÓDIGO ---
-	// ¡AQUÍ ESTÁ TU VARIABLE PARA ELEGIR EL NIVEL!
+public:
 	int32 NivelAIniciar;
 
+	UPROPERTY()
+	UFacadeGeneradorNiveles* GerenteDeNiveles;
+
+	// ?? VARIABLES DE CONTEO (Sincronizadas exactamente con lo que inyecta tu Fachada)
 	int32 CantNaveComando;
 	int32 CantTorreta;
 	int32 CantRobotLider;
 	int32 CantNaveLider;
 	int32 CantNaveKamikase;
 	int32 CantNaveCMN;
-	int32 CantFrancotirador;
+	int32 CantFrancotirador; // Sincronizado con el .cpp de tus compañeros
+
+	int32 AmbienteActual;
+
+	// ?? LOS ARREGLOS QUE TE FALTABAN (Para guardar los enemigos creados)
+	UPROPERTY()
+	TArray<ANaveComando*> ListaNavesComando;
+
+	UPROPERTY()
+	TArray<ATorreta*> ListaTorretas;
+
+	UPROPERTY()
+	TArray<ARobot_Lider*> ListaRobotsLider;
+
+	UPROPERTY()
+	TArray<ANaveLider*> ListaNavesLider;
+
+	UPROPERTY()
+	TArray<ANaveKamikase*> ListaNavesKamikase;
+
+	UPROPERTY()
+	TArray<ANave_CMN*> ListaNavesCMN;
+
+	UPROPERTY()
+	TArray<ARobotFrancotirador*> ListaFrancotiradores;
+
+	void GenerarEjercito();
 };

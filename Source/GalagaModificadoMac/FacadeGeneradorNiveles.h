@@ -6,11 +6,10 @@
 #include "UObject/NoExportTypes.h"
 #include "FacadeGeneradorNiveles.generated.h"
 
-// DECLARACIONES ANTICIPADAS (Avisa al compilador que estas clases existen sin cargar todo el archivo pesado)
 class AEscenarioBase;
 class AObstaculoFactory;
+class AEscenarioBuilder;
 
-// Ficha técnica para controlar la dificultad y la ambientación
 USTRUCT(BlueprintType)
 struct FConfiguracionNivel
 {
@@ -19,14 +18,27 @@ struct FConfiguracionNivel
 	UPROPERTY()
 	int32 TipoAmbiente; // 1 = Espacio, 2 = Ciudad, 3 = Atmosfera, 4 = Nave Nodriza
 
+	// ?? CONTROL DE OBSTÁCULOS PROCEDURALES (A = Malla principal, B = Malla secundaria)
 	UPROPERTY()
 	int32 CantidadObstaculosA;
-
 	UPROPERTY()
 	int32 CantidadObstaculosB;
 
+
 	UPROPERTY()
-	int32 CantidadEnemigos;
+	int32 CantNaveComando;
+	UPROPERTY()
+	int32 CantTorreta;
+	UPROPERTY()
+	int32 CantRobotLider;
+	UPROPERTY()
+	int32 CantNaveLider;
+	UPROPERTY()
+	int32 CantNaveKamikase;
+	UPROPERTY()
+	int32 CantNaveCMN;
+	UPROPERTY()
+	int32 CantRobotFrancotirador;
 };
 
 UCLASS()
@@ -35,20 +47,15 @@ class GALAGAMODIFICADOMAC_API UFacadeGeneradorNiveles : public UObject
 	GENERATED_BODY()
 
 public:
-	// Prepara la Fachada y configura la lista de 15 niveles
 	void Inicializar(UWorld* WorldContext);
-
-	// El método unificado de campaña
 	void CargarNivelPorIndice(int32 IndiceNivel);
 
 private:
 	UPROPERTY()
 	UWorld* MundoActual;
 
-	// Lista interna con la receta de los 15 niveles
 	TArray<FConfiguracionNivel> CampanaNiveles;
 
-	// Punteros declarados de forma segura para Unreal
 	UPROPERTY()
 	AEscenarioBase* EscenarioActivo;
 

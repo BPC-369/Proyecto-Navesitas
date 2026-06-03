@@ -101,14 +101,14 @@ void AEscenarioBase::OnConstruction(const FTransform& Transform)
 	Suelo->SetRelativeScale3D(EscalaSuelo);
 	Suelo->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 
-	FVector EscalaNorteSur((GrosorPared / 100.0f), (LargoY / 100.0f), (AltoZ / 100.0f));
+	FVector EscalaNorteSur((GrosorPared / 1000.0f), (LargoY / 1000.0f), (AltoZ / 1000.0f));
 	ParedNorte->SetRelativeScale3D(EscalaNorteSur);
 	ParedSur->SetRelativeScale3D(EscalaNorteSur);
 
 	ParedNorte->SetRelativeLocation(FVector(AnchoX / 2.0f, 0.0f, (AltoZ / 2.0f)));
 	ParedSur->SetRelativeLocation(FVector(-AnchoX / 2.0f, 0.0f, (AltoZ / 2.0f)));
 
-	FVector EscalaEsteOeste(((AnchoX + (GrosorPared * 2)) / 100.0f), (GrosorPared / 100.0f), (AltoZ / 100.0f));
+	FVector EscalaEsteOeste(((AnchoX + (GrosorPared * 2)) / 1000.0f), (GrosorPared / 1000.0f), (AltoZ / 1000.0f));
 	ParedEste->SetRelativeScale3D(EscalaEsteOeste);
 	ParedOeste->SetRelativeScale3D(EscalaEsteOeste);
 

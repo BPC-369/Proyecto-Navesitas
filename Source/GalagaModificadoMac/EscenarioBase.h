@@ -56,6 +56,16 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Escenario | Dimensiones")
 	float GrosorPared;
 
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Configuracion")
+	int32 CantidadObstaculosA;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Configuracion")
+	int32 CantidadObstaculosB;
+
+	// Puntero abstracto a la fábrica inyectada por el Builder
+	
+
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void GenerarObstaculosProcedurales();
 

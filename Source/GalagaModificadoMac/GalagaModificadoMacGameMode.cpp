@@ -12,26 +12,22 @@
 #include "Nave_CMN.h"
 #include "RobotFrancotirador.h"
 
-// El include sagrado de tu Fachada unificada
+// El include de la Fachada unificada
 #include "FacadeGeneradorNiveles.h"
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
-	// ----------------------------------------------------------------------
-	// ¡CONTROLES DE LA CAMPAÑA DE 15 NIVELES!
-	// ----------------------------------------------------------------------
-	// Modifica este índice para testear cualquier nivel directamente (0 al 14).
-	// Ejemplo: 0 = Nivel 1 (Espacio), 3 = Nivel 4 (Ciudad), 9 = Nivel 10 (Nodriza).
-	NivelAIniciar = 0;
+	NivelAIniciar = 0; // Cambia aquí de 0 a 14 para saltar de nivel
 
-	// Valores base por defecto (La Fachada se encargará del grueso en el futuro)
-	CantNaveComando = 3;
+	// Inicialización de seguridad en 0 (La Fachada los sobreescribe en CargarNivelPorIndice)
+	CantNaveComando = 0;
 	CantTorreta = 0;
 	CantRobotLider = 0;
 	CantNaveLider = 0;
 	CantNaveKamikase = 0;
 	CantNaveCMN = 0;
 	CantFrancotirador = 0;
+	AmbienteActual = 1;
 }
 
 void AGalagaModificadoMacGameMode::BeginPlay()
@@ -48,20 +44,18 @@ void AGalagaModificadoMacGameMode::BeginPlay()
 		PC->bEnableMouseOverEvents = false;
 	}
 
-	// 1. Instanciamos al Gerente del Entorno (La Fachada unificada)
+	// 1. Instanciamos la Fachada unificada
 	GerenteDeNiveles = NewObject<UFacadeGeneradorNiveles>(this);
 
 	if (GerenteDeNiveles)
 	{
-		GerenteDeNiveles->Inicializar(GetWorld());
+		GerenteDeNiveles->Inicializar(GetWorld()); // Corregido según tu método "Inicializar" de la fachada
 
-		// 2. ¡ADIÓS AL SWITCH VIEJO! 
-		// Ahora llamamos a tu método maestro pasándole la variable de índice de campaña.
-		// La Fachada llamará al Director y al Builder correcto según el arreglo de 15 niveles.
+		// 2. Cargamos el mapa e inyectamos los conteos de enemigos específicos del nivel
 		GerenteDeNiveles->CargarNivelPorIndice(NivelAIniciar);
 	}
 
-	// 3. Desplegamos el escuadrón de naves enemigas en el mapa cargado
+	// 3. Desplegamos el escuadrón usando los datos inyectados por la fachada
 	GenerarEjercito();
 }
 
@@ -73,9 +67,18 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
+	// Limpiamos listas anteriores por si acaso
+	ListaNavesComando.Empty();
+	ListaTorretas.Empty();
+	ListaRobotsLider.Empty();
+	ListaNavesLider.Empty();
+	ListaNavesKamikase.Empty();
+	ListaNavesCMN.Empty();
+	ListaFrancotiradores.Empty();
+
+	// Posiciones de la grilla de tu equipo
 	FVector PosicionAerea(0.0f, 0.0f, 800.0f);
 	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f);
-
 	float Separacion = 300.0f;
 
 	// 1. Spawn Nave Comando
@@ -134,5 +137,5 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevoFrancotirador) ListaFrancotiradores.Add(NuevoFrancotirador);
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("¡Ejército Desplegado Exitosamente!"));
+	UE_LOG(LogTemp, Warning, TEXT("¡Ejército Desplegado Exitosamente por la Fachada!"));
 }
