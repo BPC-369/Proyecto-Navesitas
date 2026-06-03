@@ -1,64 +1,121 @@
-#include "BossProjectile.h"
+﻿#include "BossProjectile.h"
+#include "BossEstatico.h"
+#include "CeldasEnergia.h"
 #include "Components/SphereComponent.h"
-#include "NiagaraComponent.h" // <-- Incluimos la librer�a de Niagara
 #include "GameFramework/ProjectileMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
+#include "GameFramework/Character.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "NiagaraSystem.h"                          // Tipo del asset
 #include "UObject/ConstructorHelpers.h"
-#include "Kismet/GameplayStatics.h" 
-#include "GameFramework/DamageType.h"
 
 ABossProjectile::ABossProjectile()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
 
-    ColisionEsfera = CreateDefaultSubobject<USphereComponent>(TEXT("ColisionEsfera"));
-    ColisionEsfera->InitSphereRadius(20.0f);
-    ColisionEsfera->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
-    RootComponent = ColisionEsfera;
+    // Colisionador esférico invisible como raíz
+    Colisionador = CreateDefaultSubobject<USphereComponent>(TEXT("Colisionador"));
+    Colisionador->InitSphereRadius(25.0f);          // Ajusta el tamaño según tu VFX
+    RootComponent = Colisionador;
 
-    // --- INICIO CONFIGURACI�N NIAGARA ---
-    EfectoNiagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("EfectoNiagara"));
-    EfectoNiagara->SetupAttachment(RootComponent);
+    Colisionador->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+    Colisionador->SetCollisionResponseToAllChannels(ECR_Overlap);
+    Colisionador->OnComponentBeginOverlap.AddDynamic(this, &ABossProjectile::AlEntrarEnColision);
 
-    // Cargamos el asset de Niagara directamente usando la ruta de tus carpetas
-    static ConstructorHelpers::FObjectFinder<UNiagaraSystem> NiagaraAsset(TEXT("/Game/Basic_VFX/Niagara/NS_Basic_9.NS_Basic_9"));
-    if (NiagaraAsset.Succeeded())
+    // Componente de VFX Niagara
+    VFXNiagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("VFXNiagara"));
+    VFXNiagara->SetupAttachment(RootComponent);
+    VFXNiagara->bAutoActivate = true;               // Se reproduce automáticamente al aparecer
+
+    // Cargar el sistema Niagara desde la ruta que copiaste
+    static ConstructorHelpers::FObjectFinder<UNiagaraSystem> NiagaraSystemFinder(
+        TEXT("/Game/Basic_VFX/Niagara/NS_Basic_9.NS_Basic_9")
+    );
+    if (NiagaraSystemFinder.Succeeded())
     {
-        EfectoNiagara->SetAsset(NiagaraAsset.Object);
+        VFXNiagara->SetAsset(NiagaraSystemFinder.Object);
     }
-    // --- FIN CONFIGURACI�N NIAGARA ---
+    else
+    {
+        UE_LOG(LogTemp, Error, TEXT("No se pudo cargar el Niagara System NS_Basic_9"));
+    }
 
+    // Movimiento
     ComponenteMovimiento = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ComponenteMovimiento"));
-    ComponenteMovimiento->UpdatedComponent = ColisionEsfera;
+    ComponenteMovimiento->InitialSpeed = 1500.0f;
+    ComponenteMovimiento->MaxSpeed = 1500.0f;
     ComponenteMovimiento->ProjectileGravityScale = 0.0f;
 
-    DanoProyectil = 50.0f;
-    InitialLifeSpan = 20.0f;
+    Dano = 20.0f;
 }
 
-void ABossProjectile::ConfigurarProyectil(float NuevaEscala, float NuevoDano, float NuevaVelocidad)
+void ABossProjectile::BeginPlay()
 {
-    SetActorScale3D(FVector(NuevaEscala));
-    DanoProyectil = NuevoDano;
-    ComponenteMovimiento->InitialSpeed = NuevaVelocidad;
-    ComponenteMovimiento->MaxSpeed = NuevaVelocidad;
+    Super::BeginPlay();
+    SpawnLocation = GetActorLocation();
 
-    // --- FIX 2: �Obligamos a la bala a moverse hacia adelante! ---
-    ComponenteMovimiento->Velocity = GetActorForwardVector() * NuevaVelocidad;
-}
-
-void ABossProjectile::NotifyActorBeginOverlap(AActor* OtherActor)
-{
-    Super::NotifyActorBeginOverlap(OtherActor);
-    if (OtherActor && OtherActor != this && OtherActor != GetInstigator())
+    // Activar el Niagara explícitamente (por si acaso)
+    if (VFXNiagara)
     {
-        UGameplayStatics::ApplyDamage(
-            OtherActor,
-            DanoProyectil,
-            GetInstigatorController(),
-            this,
-            UDamageType::StaticClass()
-        );
+        VFXNiagara->Activate(true);
+    }
+}
 
+void ABossProjectile::Tick(float DeltaTime)
+{
+    Super::Tick(DeltaTime);
+
+    // Destrucción por distancia
+    if (FVector::DistSquared(GetActorLocation(), SpawnLocation) > FMath::Square(MaxTravelDistance))
+    {
         Destroy();
     }
+}
+
+void ABossProjectile::ConfigurarProyectil(float NuevaVelocidad, float NuevoDano, FVector Escala)
+{
+    if (ComponenteMovimiento)
+    {
+        ComponenteMovimiento->InitialSpeed = NuevaVelocidad;
+        ComponenteMovimiento->MaxSpeed = NuevaVelocidad;
+    }
+    Dano = NuevoDano;
+    SetActorScale3D(Escala);                        // Escala también afecta al VFX
+}
+
+void ABossProjectile::HabilitarEfectoOnda(float EscalaExtra, float bActivar)
+{
+    // Puedes modificar parámetros del Niagara aquí si lo deseas
+    // Por ahora solo ajustamos escala
+    SetActorScale3D(FVector(EscalaExtra, 0.5f, 0.5f));
+}
+
+void ABossProjectile::SetDireccion(FVector Direccion)
+{
+    if (ComponenteMovimiento)
+    {
+        ComponenteMovimiento->Velocity = Direccion.GetSafeNormal() * ComponenteMovimiento->InitialSpeed;
+    }
+}
+
+void ABossProjectile::AlEntrarEnColision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+    UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+    bool bFromSweep, const FHitResult& SweepResult)
+{
+    if (!OtherActor || OtherActor == this || OtherActor == GetInstigator()) return;
+    if (OtherActor->IsA(ABossEstatico::StaticClass()) ||
+        OtherActor->IsA(ABossProjectile::StaticClass()) ||
+        OtherActor->IsA(ACeldaEnergia::StaticClass())) return;
+
+    ACharacter* PlayerChar = Cast<ACharacter>(OtherActor);
+    if (PlayerChar)
+    {
+        if (auto* MoveComp = PlayerChar->GetCharacterMovement())
+        {
+            MoveComp->MaxWalkSpeed *= 0.5f;
+        }
+    }
+
+    UGameplayStatics::ApplyDamage(OtherActor, Dano, GetInstigatorController(), this, UDamageType::StaticClass());
+    Destroy();
 }

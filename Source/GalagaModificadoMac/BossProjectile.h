@@ -1,31 +1,42 @@
 #pragma once
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+#include "NiagaraComponent.h"
 #include "BossProjectile.generated.h"
-
-class USphereComponent;
-class UProjectileMovementComponent;
-class UNiagaraComponent; // <-- Añadimos la clase de Niagara
 
 UCLASS()
 class GALAGAMODIFICADOMAC_API ABossProjectile : public AActor
 {
     GENERATED_BODY()
+
 public:
     ABossProjectile();
-    void ConfigurarProyectil(float NuevaEscala, float NuevoDano, float NuevaVelocidad);
-    virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
+
+    virtual void Tick(float DeltaTime) override;
+
+    void ConfigurarProyectil(float NuevaVelocidad, float NuevoDano, FVector Escala = FVector(1.0f));
+    void HabilitarEfectoOnda(float EscalaExtra, float bActivar);
+    void SetDireccion(FVector Direccion);
+
+    // Componentes públicos (para acceso desde el builder)
+    class USphereComponent* Colisionador;                // <-- ahora público
+    UProjectileMovementComponent* ComponenteMovimiento;
+    float Dano;
+
+    UFUNCTION()
+        void AlEntrarEnColision(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
+            UPrimitiveComponent* OtherComp, int32 OtherBodyIndex,
+            bool bFromSweep, const FHitResult& SweepResult);
+
+protected:
+    virtual void BeginPlay() override;
 
 private:
-    UPROPERTY(VisibleAnywhere, Category = "Componentes")
-        USphereComponent* ColisionEsfera;
+    UPROPERTY()
+        UNiagaraComponent* VFXNiagara;
 
-    // Reemplazamos la Malla por el componente Niagara
-    UPROPERTY(VisibleAnywhere, Category = "Componentes")
-        UNiagaraComponent* EfectoNiagara;
-
-    UPROPERTY(VisibleAnywhere, Category = "Componentes")
-        UProjectileMovementComponent* ComponenteMovimiento;
-
-    float DanoProyectil;
-};
+    FVector SpawnLocation;
+    float MaxTravelDistance = 5000.0f;
+};  

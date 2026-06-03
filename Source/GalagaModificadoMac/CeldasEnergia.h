@@ -1,12 +1,11 @@
 #pragma once
+
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-// --- LA REGLA DE ORO DE UNREAL: Este debe ser el último include y coincidir con el nombre de tu archivo ---
 #include "CeldasEnergia.generated.h"
 
-class ACeldaEnergia; // Declaración adelantada
+class ACeldaEnergia;
 
-// --- INTERFAZ OBSERVER ACTUALIZADA ---
 class ICeldaObserver
 {
 public:
@@ -18,14 +17,25 @@ UCLASS()
 class GALAGAMODIFICADOMAC_API ACeldaEnergia : public AActor
 {
     GENERATED_BODY()
+
 public:
     ACeldaEnergia();
+    virtual void Tick(float DeltaTime) override;
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
     void AsignarObservador(ICeldaObserver* Observador);
 
+protected:
+    virtual void BeginPlay() override;
+
 private:
-    UPROPERTY(VisibleAnywhere)
+    UPROPERTY()
+        class USceneComponent* RaizCelda;
+
+    UPROPERTY()
+        class USceneComponent* PivoteCentrado;   // Pivote que situaremos en el centro exacto
+
+    UPROPERTY()
         class UStaticMeshComponent* MallaCelda;
 
     float Vida;

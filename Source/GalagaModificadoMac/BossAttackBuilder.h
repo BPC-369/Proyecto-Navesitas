@@ -1,26 +1,27 @@
 #pragma once
+
 #include "CoreMinimal.h"
+#include "BossProjectile.h"
 
-class AActor;
 class UWorld;
+class AActor;
 
-class BossAttackBuilder
+class GALAGAMODIFICADOMAC_API BossAttackBuilder
 {
 public:
-    BossAttackBuilder(UWorld* EnMundo, AActor* EnDisparador);
+    BossAttackBuilder(UWorld* InWorld, AActor* InDueno);
 
-    // Métodos para configurar la munición de la pared
-    BossAttackBuilder& SetDano(float NuevoDano);
-    BossAttackBuilder& SetVelocidad(float NuevaVelocidad);
-    BossAttackBuilder& SetEscala(float NuevaEscala);
+    BossAttackBuilder& SetDano(float InDano);
+    BossAttackBuilder& SetVelocidad(float InVelocidad);
+    BossAttackBuilder& SetEscala(float InEscala);
 
-    // Constructores de Formas Complejas
-    void ConstruirPared(FVector Origen, FVector DireccionFrente, int Filas, int Columnas, float Espaciado);
-    void ConstruirAbanico(FVector Origen, FVector DireccionFrente, int Cantidad, float AnguloApertura, bool bMulticapa);
+    // Ahora acepta un ángulo base para rotar el patrón (en grados)
+    void ConstruirMuroRadialAoE(FVector Origen, int32 CantidadDirecciones, int32 AlturaMuro, float Espaciado, int32 Columnas = 3, float AnguloBase = 0.0f);
+    void ConstruirAnilloOndaExpansiva(FVector Origen, int32 CantidadProyectiles, bool ActivarOnda);
 
 private:
     UWorld* Mundo;
-    AActor* Disparador;
+    AActor* Dueno;
     float Dano;
     float Velocidad;
     float Escala;
