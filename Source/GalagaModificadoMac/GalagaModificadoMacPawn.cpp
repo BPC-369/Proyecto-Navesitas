@@ -17,6 +17,7 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Blueprint/UserWidget.h"			// <- Necesario para CreateWidget
 #include "GameFramework/PlayerController.h"	// <- Necesario para FInputModeUIOnly
+#include "BombaRacimo.h"
 
 const FName AGalagaModificadoMacPawn::MoveForwardBinding("MoveForward");
 const FName AGalagaModificadoMacPawn::MoveRightBinding("MoveRight");
@@ -464,7 +465,6 @@ FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModif
 
 void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
-	// Si aún nos queda munición...
 	if (NaveContexto->BombasRacimoRestantes > 0)
 	{
 		UWorld* const World = NaveContexto->GetWorld();
@@ -474,20 +474,19 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
 			FActorSpawnParameters SpawnParams;
 			SpawnParams.Owner = NaveContexto;
 
-			NaveContexto->BombasRacimoRestantes--; // Restamos una bomba
+			NaveContexto->BombasRacimoRestantes--;
 
-			// Generamos las 8 balas en círculo
-			for (int i = 0; i < 8; i++)
-			{
-				FRotator RacimoRot = FireRotation;
-				RacimoRot.Yaw += (45.0f * i);
-				World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
-			}
+			// Offset para que no nazca dentro de la nave
+			FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
+
+			// ¡CLAVE AQUÍ! Hacemos Spawn de la clase hija (ABombaRacimoProjectile)
+			World->SpawnActor<ABombaRacimo>(SpawnLocation, FireRotation, SpawnParams);
+
+			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Orange, TEXT("BOMBA RACIMO EN CAMINO"));
 		}
 	}
 	else
 	{
-		// Si no hay munición, delegamos al disparo normal
 		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
 	}
 }

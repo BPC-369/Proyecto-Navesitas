@@ -11,11 +11,19 @@
 #include "NaveKamikase.h"
 #include "Nave_CMN.h"
 #include "RobotFrancotirador.h"
+#include "FacadeGeneradorNiveles.h"
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
-	// Aquí modificas las cantidades cuando quieras (Sin tocar el Editor)
-	CantNaveComando = 0;
+	// ---------------------------------------------------------
+	// ¡CONTROLES GENERALES DEL JUEGO! (Modifica los números aquí)
+	// ---------------------------------------------------------
+
+	// Elige el nivel: 1 = Espacio, 2 = Ciudad, 3 = Atmosfera
+	NivelAIniciar = 2;
+
+	// Cantidad de enemigos a generar
+	CantNaveComando = 3;
 	CantTorreta = 0;
 	CantRobotLider = 0;
 	CantNaveLider = 0;
@@ -27,6 +35,7 @@ AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 void AGalagaModificadoMacGameMode::BeginPlay()
 {
 	Super::BeginPlay();
+
 	// Obtener el controlador del jugador
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (PC)
@@ -39,6 +48,30 @@ void AGalagaModificadoMacGameMode::BeginPlay()
 		PC->bEnableClickEvents = false;
 		PC->bEnableMouseOverEvents = false;
 	}
+
+	// 1. Contratamos al Gerente (Instanciamos la Fachada)
+	GerenteDeNiveles = NewObject<UFacadeGeneradorNiveles>(this);
+	GerenteDeNiveles->Inicializar(GetWorld());
+
+	// 2. Leemos tu variable numérica y la Fachada carga el nivel
+	switch (NivelAIniciar)
+	{
+	case 1:
+		GerenteDeNiveles->CargarNivelEspacio();
+		break;
+	case 2:
+		GerenteDeNiveles->CargarNivelCiudad();
+		break;
+	case 3:
+		GerenteDeNiveles->CargarNivelAtmosfera();
+		break;
+	default:
+		UE_LOG(LogTemp, Warning, TEXT("Nivel invalido. Cargando Ciudad por defecto."));
+		GerenteDeNiveles->CargarNivelCiudad();
+		break;
+	}
+
+	// 3. Generamos los enemigos
 	GenerarEjercito();
 }
 
