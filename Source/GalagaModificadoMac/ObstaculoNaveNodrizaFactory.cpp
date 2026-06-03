@@ -10,13 +10,13 @@ AObstaculoNaveNodrizaFactory::AObstaculoNaveNodrizaFactory()
 {
 	// Aquí cargas tus mallas de la nave nodriza. 
 	// Reemplaza estas rutas de ejemplo por las carpetas reales de tus modelos 3D
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshPasilloAsset(TEXT("StaticMesh'/Game/Modelos/Nave/MPasillo.MPasillo'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshPasilloAsset(TEXT("StaticMesh'/Game/Modelos/navenodriza/Obstaculos/FuturePillarsBaked.FuturePillarsBaked'"));
 	if (MeshPasilloAsset.Succeeded())
 	{
 		MallasPasillos.Add(MeshPasilloAsset.Object);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshTorretaAsset(TEXT("StaticMesh'/Game/Modelos/Nave/MTorreta.MTorreta'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshTorretaAsset(TEXT("StaticMesh'/Game/Geometry/Meshes/1M_Cube.1M_Cube'"));
 	if (MeshTorretaAsset.Succeeded())
 	{
 		MallasTorretas.Add(MeshTorretaAsset.Object);

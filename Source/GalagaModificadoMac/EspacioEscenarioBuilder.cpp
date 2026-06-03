@@ -2,14 +2,31 @@
 
 
 #include "EspacioEscenarioBuilder.h"
-#include "ObstaculoEspacioFactory.h"
+#include "EscenarioEspacio.h" 
+#include "ObstaculoEspacioFactory.h" 
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Engine/World.h"
+
+
+AEspacioEscenarioBuilder::AEspacioEscenarioBuilder()
+{
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialEspacioAsset(TEXT("Material'/Game/Modelos/MEspacioProfundo.MEspacioProfundo'"));
+	if (MaterialEspacioAsset.Succeeded())
+	{
+		MaterialEspacioGuardado = MaterialEspacioAsset.Object;
+	}
+	else
+	{
+		MaterialEspacioGuardado = nullptr;
+	}
+}
+
 
 void AEspacioEscenarioBuilder::ConstruirDimensiones()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Mudamos tus dimensiones originales
+
 	EscenarioEnConstruccion->AnchoX = 100000.0f;
 	EscenarioEnConstruccion->LargoY = 100000.0f;
 	EscenarioEnConstruccion->AltoZ = 10000.0f;
@@ -17,23 +34,29 @@ void AEspacioEscenarioBuilder::ConstruirDimensiones()
 
 void AEspacioEscenarioBuilder::ConstruirEsteticaCielo()
 {
+
 	if (!EscenarioEnConstruccion) return;
 
-	// Tu precarga del domo del espacio profundo se ejecuta aquí
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialEspacioAsset(TEXT("Material'/Game/Modelos/MEspacioProfundo.MEspacioProfundo'"));
-	if (MaterialEspacioAsset.Succeeded())
+	if (EscenarioEnConstruccion->DomoCielo)
 	{
-		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialEspacioAsset.Object);
-	}
+		if (MaterialEspacioGuardado)
+		{
+			EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialEspacioGuardado);
+		}
 
-	EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(5000.0f));
-	EscenarioEnConstruccion->DomoCielo->SetRelativeLocation(FVector(0.0f));
+		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(5000.0f));
+		EscenarioEnConstruccion->DomoCielo->SetRelativeLocation(FVector(0.0f));
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("DomoCielo es NULL en el EspacioEscenarioBuilder!"));
+	}
 }
 
 void AEspacioEscenarioBuilder::ConstruirFisicasSuelo()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Volvemos invisible el suelo como en tu código original
+
 	if (EscenarioEnConstruccion->Suelo)
 	{
 		EscenarioEnConstruccion->Suelo->SetVisibility(false);
@@ -44,14 +67,14 @@ void AEspacioEscenarioBuilder::ConstruirFabricaDeObstaculos()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// Spawneamos tu fábrica del espacio y se la inyectamos al escenario base
-	if (GetWorld())
+	UWorld* Mundo = GetWorld();
+	if (Mundo)
 	{
 		FActorSpawnParameters SpawnParams;
-		AObstaculoEspacioFactory* FabricaEspacio = GetWorld()->SpawnActor<AObstaculoEspacioFactory>(
-			AObstaculoEspacioFactory::StaticClass(), SpawnParams
-		);
+		// Instanciamos tu fábrica de meteoritos
+		AObstaculoEspacioFactory* FabricaEspacio = Mundo->SpawnActor<AObstaculoEspacioFactory>(AObstaculoEspacioFactory::StaticClass(), SpawnParams);
 
+		// Se la inyectamos al producto
 		EscenarioEnConstruccion->FabricaObstaculos = FabricaEspacio;
 	}
 }
@@ -59,7 +82,7 @@ void AEspacioEscenarioBuilder::ConstruirFabricaDeObstaculos()
 void AEspacioEscenarioBuilder::ConstruirFabricaDeEnemigos()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Aquí es donde tus compas conectarán su fábrica de naves más adelante. 
-	// De momento lo dejamos listo y protegido.
+
+	// Espacio reservado para las naves de tus panas
 	//EscenarioEnConstruccion->FabricaEnemigos = nullptr;
 }

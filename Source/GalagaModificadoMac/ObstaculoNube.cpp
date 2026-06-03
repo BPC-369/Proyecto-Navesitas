@@ -20,7 +20,7 @@ AObstaculoNube::AObstaculoNube()
 	}
 
 	// material(color) de nubes
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatDefecto(TEXT("Texture2D'/Game/Modelos/nubes/nubes.nubes'"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatDefecto(TEXT("Material'/Game/Modelos/nubes/Material.Material'"));
 	if (MatDefecto.Succeeded())
 	{
 		MallaNube->SetMaterial(0, MatDefecto.Object);

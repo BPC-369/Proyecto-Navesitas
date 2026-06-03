@@ -8,25 +8,21 @@
 
 AEscenarioAtmosfera::AEscenarioAtmosfera()
 {
-	// Seteamos únicamente las cantidades para que tus bucles for tengan un valor de inicio
 	CantidadNubesPiso = 500;
 	CantidadMontanas = 25;
 
-	// ¡Todo lo demás se borró de aquí! (Dimensiones, Materiales, Suelo y CreateDefaultSubobject)
 }
 
 void AEscenarioAtmosfera::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// El nivel arranca y ejecuta sus algoritmos procedurales de forma limpia
 	GenerarPisoDeNubes();
 	GenerarMontanas();
 }
 
 void AEscenarioAtmosfera::GenerarPisoDeNubes()
 {
-	// Cast para usar tu fábrica asignada de manera externa por el Builder
 	AObstaculoAtmosferaFactory* FabricaAtmosfera = Cast<AObstaculoAtmosferaFactory>(FabricaObstaculos);
 	if (!FabricaAtmosfera || !GetWorld()) return;
 
