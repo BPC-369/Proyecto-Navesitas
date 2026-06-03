@@ -39,7 +39,7 @@ void AAtmosferaEscenarioBuilder::ConstruirFisicasSuelo()
 	// Desactivación del suelo migrado de tu constructor viejo
 	if (EscenarioEnConstruccion->Suelo)
 	{
-		EscenarioEnConstruccion->Suelo->SetVisibility(false);
+		EscenarioEnConstruccion->Suelo->SetVisibility(true);
 	}
 }
 

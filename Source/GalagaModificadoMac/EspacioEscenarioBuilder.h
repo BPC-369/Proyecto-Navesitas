@@ -12,9 +12,18 @@ class GALAGAMODIFICADOMAC_API AEspacioEscenarioBuilder : public AEscenarioBuilde
 	GENERATED_BODY()
 
 public:
+	// Un solo constructor declarado
+	AEspacioEscenarioBuilder();
+
+	// Métodos obligatorios del patrón Builder
 	virtual void ConstruirDimensiones() override;
 	virtual void ConstruirEsteticaCielo() override;
 	virtual void ConstruirFisicasSuelo() override;
 	virtual void ConstruirFabricaDeObstaculos() override;
 	virtual void ConstruirFabricaDeEnemigos() override;
+
+private:
+	// Contenedor seguro para el material cargado en el constructor
+	UPROPERTY()
+	UMaterialInterface* MaterialEspacioGuardado;
 };

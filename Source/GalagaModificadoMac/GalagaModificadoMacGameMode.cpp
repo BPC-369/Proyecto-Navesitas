@@ -3,7 +3,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
 
-// Asegúrate de tener los includes reales de tus clases
+// Includes de los sistemas enemigos de tus compañeros
 #include "NaveComando.h"
 #include "Torreta.h"
 #include "Robot_Lider.h"
@@ -11,18 +11,20 @@
 #include "NaveKamikase.h"
 #include "Nave_CMN.h"
 #include "RobotFrancotirador.h"
+
+// El include sagrado de tu Fachada unificada
 #include "FacadeGeneradorNiveles.h"
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
-	// ---------------------------------------------------------
-	// ¡CONTROLES GENERALES DEL JUEGO! (Modifica los números aquí)
-	// ---------------------------------------------------------
+	// ----------------------------------------------------------------------
+	// ¡CONTROLES DE LA CAMPAÑA DE 15 NIVELES!
+	// ----------------------------------------------------------------------
+	// Modifica este índice para testear cualquier nivel directamente (0 al 14).
+	// Ejemplo: 0 = Nivel 1 (Espacio), 3 = Nivel 4 (Ciudad), 9 = Nivel 10 (Nodriza).
+	NivelAIniciar = 0;
 
-	// Elige el nivel: 1 = Espacio, 2 = Ciudad, 3 = Atmosfera
-	NivelAIniciar = 2;
-
-	// Cantidad de enemigos a generar
+	// Valores base por defecto (La Fachada se encargará del grueso en el futuro)
 	CantNaveComando = 3;
 	CantTorreta = 0;
 	CantRobotLider = 0;
@@ -36,42 +38,30 @@ void AGalagaModificadoMacGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Obtener el controlador del jugador
+	// Configuración del controlador del jugador
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
 	if (PC)
 	{
-		// Forzar modo "solo juego" (sin necesidad de clic)
 		PC->SetInputMode(FInputModeGameOnly());
-		// Ocultar el cursor del ratón
 		PC->bShowMouseCursor = false;
-		// Desactivar eventos de ratón sobrantes
 		PC->bEnableClickEvents = false;
 		PC->bEnableMouseOverEvents = false;
 	}
 
-	// 1. Contratamos al Gerente (Instanciamos la Fachada)
+	// 1. Instanciamos al Gerente del Entorno (La Fachada unificada)
 	GerenteDeNiveles = NewObject<UFacadeGeneradorNiveles>(this);
-	GerenteDeNiveles->Inicializar(GetWorld());
 
-	// 2. Leemos tu variable numérica y la Fachada carga el nivel
-	switch (NivelAIniciar)
+	if (GerenteDeNiveles)
 	{
-	case 1:
-		GerenteDeNiveles->CargarNivelEspacio();
-		break;
-	case 2:
-		GerenteDeNiveles->CargarNivelCiudad();
-		break;
-	case 3:
-		GerenteDeNiveles->CargarNivelAtmosfera();
-		break;
-	default:
-		UE_LOG(LogTemp, Warning, TEXT("Nivel invalido. Cargando Ciudad por defecto."));
-		GerenteDeNiveles->CargarNivelCiudad();
-		break;
+		GerenteDeNiveles->Inicializar(GetWorld());
+
+		// 2. ¡ADIÓS AL SWITCH VIEJO! 
+		// Ahora llamamos a tu método maestro pasándole la variable de índice de campaña.
+		// La Fachada llamará al Director y al Builder correcto según el arreglo de 15 niveles.
+		GerenteDeNiveles->CargarNivelPorIndice(NivelAIniciar);
 	}
 
-	// 3. Generamos los enemigos
+	// 3. Desplegamos el escuadrón de naves enemigas en el mapa cargado
 	GenerarEjercito();
 }
 
@@ -81,16 +71,14 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 	if (!Mundo) return;
 
 	FActorSpawnParameters SpawnParams;
-	// Obligamos a que nazcan incluso si se rozan un poco
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	// Variables para separar a los enemigos en el mapa
-	FVector PosicionAerea(0.0f, 0.0f, 800.0f);    // Las naves nacen en el aire
-	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f); // Los robots y torretas en el suelo
+	FVector PosicionAerea(0.0f, 0.0f, 800.0f);
+	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f);
 
-	float Separacion = 300.0f; // Distancia entre cada enemigo
+	float Separacion = 300.0f;
 
-	// 1. Spawn Nave Comando (2)
+	// 1. Spawn Nave Comando
 	for (int32 i = 0; i < CantNaveComando; i++)
 	{
 		FVector Pos = PosicionAerea + FVector(i * Separacion, 0.0f, 0.0f);
@@ -98,7 +86,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevaNave) ListaNavesComando.Add(NuevaNave);
 	}
 
-	// 2. Spawn Torretas (4)
+	// 2. Spawn Torretas
 	for (int32 i = 0; i < CantTorreta; i++)
 	{
 		FVector Pos = PosicionTerrestre + FVector(i * Separacion, 500.0f, 0.0f);
@@ -106,7 +94,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevaTorreta) ListaTorretas.Add(NuevaTorreta);
 	}
 
-	// 3. Spawn Robot Lider (1)
+	// 3. Spawn Robot Lider
 	for (int32 i = 0; i < CantRobotLider; i++)
 	{
 		FVector Pos = PosicionTerrestre + FVector(i * Separacion, 1000.0f, 0.0f);
@@ -114,7 +102,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevoRobot) ListaRobotsLider.Add(NuevoRobot);
 	}
 
-	// 4. Spawn Nave Lider (1)
+	// 4. Spawn Nave Lider
 	for (int32 i = 0; i < CantNaveLider; i++)
 	{
 		FVector Pos = PosicionAerea + FVector(i * Separacion, 1500.0f, 0.0f);
@@ -122,7 +110,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevaNaveLider) ListaNavesLider.Add(NuevaNaveLider);
 	}
 
-	// 5. Spawn Nave Kamikase (3)
+	// 5. Spawn Nave Kamikase
 	for (int32 i = 0; i < CantNaveKamikase; i++)
 	{
 		FVector Pos = PosicionAerea + FVector(i * Separacion, -500.0f, 0.0f);
@@ -130,7 +118,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevoKamikase) ListaNavesKamikase.Add(NuevoKamikase);
 	}
 
-	// 6. Spawn Nave CMN (5)
+	// 6. Spawn Nave CMN
 	for (int32 i = 0; i < CantNaveCMN; i++)
 	{
 		FVector Pos = PosicionAerea + FVector(i * Separacion, -1000.0f, 0.0f);
@@ -138,10 +126,9 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 		if (NuevaCMN) ListaNavesCMN.Add(NuevaCMN);
 	}
 
-	// 7. Spawn Robot Francotirador (3)
+	// 7. Spawn Robot Francotirador
 	for (int32 i = 0; i < CantFrancotirador; i++)
 	{
-		// Los colocamos alejados en el terreno terrestre para que aprovechen su rango
 		FVector Pos = PosicionTerrestre + FVector(i * Separacion, 1500.0f, 0.0f);
 		ARobotFrancotirador* NuevoFrancotirador = Mundo->SpawnActor<ARobotFrancotirador>(ARobotFrancotirador::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
 		if (NuevoFrancotirador) ListaFrancotiradores.Add(NuevoFrancotirador);

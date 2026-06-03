@@ -8,15 +8,19 @@
 
 AEscenarioEspacio::AEscenarioEspacio()
 {
-	// ¡TOTALMENTE VACÍO! 
+
 }
 
 void AEscenarioEspacio::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// Arranca el gameplay y disparamos la siembra de meteoritos
-	GenerarEntornoEspacial();
+	if (Suelo)
+	{
+		Suelo->SetVisibility(false);
+	}
+
+	GenerarObstaculosProcedurales();
 }
 
 void AEscenarioEspacio::GenerarEntornoEspacial()
