@@ -73,10 +73,11 @@ void AGalagaModificadoMacGameMode::GenerarEjercito()
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	FVector PosicionAerea(0.0f, 0.0f, 800.0f);
-	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f);
+	// Variables para separar a los enemigos en el mapa
+	FVector PosicionAerea(0.0f, 20000.0f, 1500.0f);    // Las naves nacen en el aire
+	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f); // Los robots y torretas en el suelo
 
-	float Separacion = 300.0f;
+	float Separacion = 3000.0f; // Distancia entre cada enemigo
 
 	// 1. Spawn Nave Comando
 	for (int32 i = 0; i < CantNaveComando; i++)

@@ -24,12 +24,13 @@ ABonificacion::ABonificacion()
 	MallaBonificacion->SetupAttachment(RootComponent);
 	MallaBonificacion->SetCollisionEnabled(ECollisionEnabled::NoCollision); // Solo la esfera choca
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> CuboMeshAsset(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_Cube.Shape_Cube'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> CuboMeshAsset(TEXT("StaticMesh'/Game/SciFi_Props/Models/SM_Box_3.SM_Box_3'"));
 
 	// Si Unreal encontró el modelo correctamente, se lo asignamos al componente
 	if (CuboMeshAsset.Succeeded())
 	{
 		MallaBonificacion->SetStaticMesh(CuboMeshAsset.Object);
+		MallaBonificacion->SetRelativeScale3D(FVector(2.0f, 2.0f, 2.0f));
 	}
 
 	// 3. Valores por defecto para la animación
