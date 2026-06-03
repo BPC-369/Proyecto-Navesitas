@@ -12,10 +12,13 @@ class GALAGAMODIFICADOMAC_API AObstaculoCiudadDestruidaFactory : public AObstacu
 public:
 	AObstaculoCiudadDestruidaFactory();
 
+	// Le agregamos el parámetro "Tipo" con un valor por defecto para no romper la herencia
 	virtual AObstaculoDestruido* CrearObstaculo(UWorld* Mundo, FVector Posicion, FRotator Rotacion) override;
 
-private:
+	// NUEVO MÉTODO ESPECIALIZADO: Para pedirle un objeto específico a la fábrica
+	AObstaculoDestruido* CrearObstaculoEspecifico(UWorld* Mundo, FVector Posicion, FRotator Rotacion, FString Tipo);
 
+private:
 	TArray<UStaticMesh*> MallasEdificios;
 	TArray<UStaticMesh*> MallasRocas;
 	TArray<UStaticMesh*> MallasArboles;

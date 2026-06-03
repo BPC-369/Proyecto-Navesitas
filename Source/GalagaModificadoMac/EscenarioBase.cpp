@@ -115,3 +115,9 @@ void AEscenarioBase::OnConstruction(const FTransform& Transform)
 	ParedEste->SetRelativeLocation(FVector(0.0f, LargoY / 2.0f, (AltoZ / 2.0f)));
 	ParedOeste->SetRelativeLocation(FVector(0.0f, -LargoY / 2.0f, (AltoZ / 2.0f)));
 }
+// Agrégalo al final de EscenarioBase.cpp
+void AEscenarioBase::GenerarObstaculosProcedurales()
+{
+	// Se deja vacío. Solo sirve para que los hijos hereden la firma
+	// y el Linker no proteste.
+}

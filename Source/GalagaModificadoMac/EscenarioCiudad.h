@@ -2,8 +2,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "EscenarioBase.h" 
-#include "Components/StaticMeshComponent.h"
+#include "EscenarioBase.h"
 #include "EscenarioCiudad.generated.h"
 
 UCLASS()
@@ -15,14 +14,17 @@ public:
 	AEscenarioCiudad();
 
 protected:
-
 	virtual void BeginPlay() override;
 
-private:
-	
-	TArray<UStaticMeshComponent*> ContenedorEdificiosDisponibles;
-
+public:
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Configuracion Ciudad")
 	int32 CantidadEdificios;
 
-	void GenerarObstaculosProcedurales();
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Configuracion Ciudad")
+	int32 CantidadArboles;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Configuracion Ciudad")
+	int32 CantidadRocas;
+
+	virtual void GenerarObstaculosProcedurales() override;
 };
