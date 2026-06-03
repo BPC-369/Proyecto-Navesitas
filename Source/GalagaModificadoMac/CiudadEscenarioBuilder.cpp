@@ -10,17 +10,16 @@
 void ACiudadEscenarioBuilder::ConstruirDimensiones()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Dimensiones de tu ciudad urbana
 	EscenarioEnConstruccion->AnchoX = 20000.0f;
 	EscenarioEnConstruccion->LargoY = 20000.0f;
 	EscenarioEnConstruccion->AltoZ = 5000.0f;
-	// ¡AQUÍ TIENES EL CONTROL TOTAL! Seteas las cantidades exactas desde el Builder
+
 	AEscenarioCiudad* Ciudad = Cast<AEscenarioCiudad>(EscenarioEnConstruccion);
 	if (Ciudad)
 	{
-		Ciudad->CantidadEdificios = 120; // Exactamente 120 edificios
-		Ciudad->CantidadArboles = 65;    // Exactamente 65 árboles
-		Ciudad->CantidadRocas = 15;      // Exactamente 15 rocas
+		Ciudad->CantidadEdificios = CantidadA; // Usa el dato inyectado
+		Ciudad->CantidadArboles = CantidadB;   // Usa el dato inyectado
+		Ciudad->CantidadRocas = 15; // (Si quieres dejar la roca fija, está bien)
 	}
 }
 
@@ -28,13 +27,17 @@ void ACiudadEscenarioBuilder::ConstruirEsteticaCielo()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// Tu material de fondo de ciudad destruida o cielo nublado urbano
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialCiudadAsset(TEXT("Material'/Game/Modelos/ciudaddestruida/Mciudad.Mciudad'"));
-	if (MaterialCiudadAsset.Succeeded())
+	UMaterialInterface* MaterialCiudadAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/ciudaddestruida/Mciudad.Mciudad'"));
+
+	if (MaterialCiudadAsset && EscenarioEnConstruccion->DomoCielo)
 	{
-		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialCiudadAsset.Object);
+		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialCiudadAsset);
 	}
-	EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(1000.0f));
+
+	if (EscenarioEnConstruccion->DomoCielo)
+	{
+		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(1000.0f));
+	}
 }
 
 void ACiudadEscenarioBuilder::ConstruirFisicasSuelo()

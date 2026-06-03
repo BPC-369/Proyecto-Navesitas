@@ -18,11 +18,12 @@ ANaveKamikase::ANaveKamikase() {
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> Forma(TEXT("StaticMesh'/Game/Geometry/pawn/kamikase01.kamikase01'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> Forma(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow15.StarSparrow15'"));
 	if (Forma.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(Forma.Object);
-		MallaEnemiga->SetRelativeRotation(FRotator(0.0f, 0.0f, 0.0f));
+		MallaEnemiga->SetRelativeScale3D(FVector(0.2f, 0.2f, 0.2f));
+		MallaEnemiga->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	}
 }
 

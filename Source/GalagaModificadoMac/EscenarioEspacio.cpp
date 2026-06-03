@@ -19,20 +19,16 @@ void AEscenarioEspacio::BeginPlay()
 	{
 		Suelo->SetVisibility(false);
 	}
-
-	GenerarObstaculosProcedurales();
 }
 
 void AEscenarioEspacio::GenerarEntornoEspacial()
 {
-	// FabricaObstaculos ahora es rellenada por el Builder antes del BeginPlay
 	if (!FabricaObstaculos || !GetWorld()) return;
 
 	int32 CantidadMeteoritos = 1000;
 
 	for (int32 i = 0; i < CantidadMeteoritos; i++)
 	{
-		// Tus matemáticas originales funcionan igual porque el Builder ya le dio valor a AnchoX, LargoY y AltoZ
 		float RndX = FMath::FRandRange(-AnchoX / 2.0f, AnchoX / 2.0f);
 		float RndY = FMath::FRandRange(-LargoY / 2.0f, LargoY / 2.0f);
 		float RndZ = FMath::FRandRange(-AltoZ / 2.0f, AltoZ / 2.0f);
@@ -40,7 +36,6 @@ void AEscenarioEspacio::GenerarEntornoEspacial()
 		FVector PosicionSpawn(RndX, RndY, RndZ);
 		FRotator RotacionInicial(0.0f, 0.0f, 0.0f);
 
-		// Llama a tu fábrica inyectada dinámicamente
 		FabricaObstaculos->CrearObstaculo(GetWorld(), PosicionSpawn, RotacionInicial);
 	}
 }

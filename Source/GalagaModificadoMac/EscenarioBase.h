@@ -58,6 +58,7 @@ public:
 
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void GenerarObstaculosProcedurales();
+	virtual void GenerarObstaculosDelMapa() {}
 
 private:
 

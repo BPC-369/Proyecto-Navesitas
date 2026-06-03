@@ -31,7 +31,7 @@ AEscenarioBase::AEscenarioBase()
 	AnchoX = 10000.0f;
 	LargoY = 10000.0f;
 	AltoZ = 5000.0f;
-	GrosorPared = 50.0f;
+	GrosorPared = 10.0f;
 
 	ConfigurarMallaPared(ParedNorte);
 	ConfigurarMallaPared(ParedSur);
@@ -62,7 +62,7 @@ AEscenarioBase::AEscenarioBase()
 	}
 
 	// escala inicial(sujeta a cmabios en clases hijas)
-	DomoCielo->SetRelativeScale3D(FVector(150.0f, 150.0f, 150.0f));
+	DomoCielo->SetRelativeScale3D(FVector(0.0f, 0.0f, 0.0f));
 	DomoCielo->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 
 	DomoCielo->SetCollisionProfileName(TEXT("NoCollision"));
@@ -101,14 +101,14 @@ void AEscenarioBase::OnConstruction(const FTransform& Transform)
 	Suelo->SetRelativeScale3D(EscalaSuelo);
 	Suelo->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 
-	FVector EscalaNorteSur((GrosorPared / 100.0f), (LargoY / 100.0f), (AltoZ / 100.0f));
+	FVector EscalaNorteSur((GrosorPared / 1000.0f), (LargoY / 1000.0f), (AltoZ / 1000.0f));
 	ParedNorte->SetRelativeScale3D(EscalaNorteSur);
 	ParedSur->SetRelativeScale3D(EscalaNorteSur);
 
 	ParedNorte->SetRelativeLocation(FVector(AnchoX / 2.0f, 0.0f, (AltoZ / 2.0f)));
 	ParedSur->SetRelativeLocation(FVector(-AnchoX / 2.0f, 0.0f, (AltoZ / 2.0f)));
 
-	FVector EscalaEsteOeste(((AnchoX + (GrosorPared * 2)) / 100.0f), (GrosorPared / 100.0f), (AltoZ / 100.0f));
+	FVector EscalaEsteOeste(((AnchoX + (GrosorPared * 2)) / 1000.0f), (GrosorPared / 1000.0f), (AltoZ / 1000.0f));
 	ParedEste->SetRelativeScale3D(EscalaEsteOeste);
 	ParedOeste->SetRelativeScale3D(EscalaEsteOeste);
 

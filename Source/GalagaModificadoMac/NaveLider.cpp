@@ -1,11 +1,13 @@
-// Fill out your copyright notice in the Description page of Project Settings.
+//// Fill out your copyright notice in the Description page of Project Settings.
 
 #include "NaveLider.h"
 #include "BalaEspecial.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/PrimitiveComponent.h" // <-- AÑADIDO: Necesario para manejar las colisiones
 #include "ComponenteCombate.h"
+#include "GalagaModificadoMacProjectile.h" // Asegúrate de incluir tu clase de proyectil
 
 ANaveLider::ANaveLider()
 {
@@ -20,8 +22,9 @@ ANaveLider::ANaveLider()
 		ComponenteCombate->EscudoActual = ComponenteCombate->EscudoMaximo;
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
+	
 	// Buscamos la malla de la Nave Comando
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/Geometry/pawn/navlider03.navlider03'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow01.StarSparrow01'"));
 
 	if (MeshAsset.Succeeded())
 	{
@@ -29,10 +32,10 @@ ANaveLider::ANaveLider()
 		MallaEnemiga->SetStaticMesh(MeshAsset.Object);
 
 		// Opcional: Si quieres que sea más grande que las comunes para que imponga
-		MallaEnemiga->SetWorldScale3D(FVector(1.5f, 1.5f, 1.5f));
+		MallaEnemiga->SetWorldScale3D(FVector(0.8f, 0.8f, 0.8f));
+		MallaEnemiga->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
 	}
 }
-
 
 void ANaveLider::BeginPlay()
 {
@@ -54,22 +57,40 @@ void ANaveLider::Atacar()
 {
 	UWorld* const World = GetWorld();
 
-	// Escudo protector: Validamos que el mundo exista
+	// Validamos que el mundo exista
 	if (World != nullptr)
 	{
 		//Tomamos la rotación actual de la nave para que la bala salga disparada hacia adelante.
 		const FRotator RotacionDisparo = GetActorRotation();
 
-		//Colocamos la Bala un poco por delante de la nave para que no choque con ella al nacer.
+		//Colocamos la Bala un poco por delante de la nave
 		const FVector PosicionDisparo = GetActorLocation() + (GetActorForwardVector() * 180.0f);
 
 		// indicamos que esta nave es la dueña de la bala que va a nacer
 		FActorSpawnParameters SpawnParams;
 		SpawnParams.Owner = this;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		// Le pasamos SpawnParams al final para que la bala nazca sabiendo quién es su padre.
-		World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparo, RotacionDisparo, SpawnParams);
-	}
+		// CORRECCIÓN: Guardamos el proyectil al nacer y le decimos que ignore la colisión con el Líder
+		AGalagaModificadoMacProjectile* ProyectilLider = World->SpawnActor<AGalagaModificadoMacProjectile>(PosicionDisparo, RotacionDisparo, SpawnParams);
+
+		if (ProyectilLider)
+		{
+			UPrimitiveComponent* ColliderProyectil = ProyectilLider->FindComponentByClass<UPrimitiveComponent>();
+			if (ColliderProyectil)
+			{
+				ColliderProyectil->IgnoreActorWhenMoving(this, true);
+			}
+		}
+	};
+	
+	/*
+	// NOTA: Tu código comentado para disparar balas especiales está muy bien planteado. 
+	// Si más adelante lo descomentas, recuerda aplicar esta misma lógica de 
+	// FindComponentByClass<UPrimitiveComponent>() -> IgnoreActorWhenMoving(this, true) 
+	// a la "ABalaEspecial" para que tampoco choque con la nave.
+	*/
+}
 	/*ContadorDisparos++;
 
 	FVector SpawnLocation = GetActorLocation() + GetActorForwardVector() * 100.0f;
@@ -84,7 +105,7 @@ void ANaveLider::Atacar()
 		// Disparo normal heredado de la clase base de proyectiles
 		GetWorld()->SpawnActor<AGalagaModificadoMacProjectile>(AGalagaModificadoMacProjectile::StaticClass(), SpawnLocation, SpawnRotation);
 	}*/
-}
+
 
 
 // ajustamos los daños de impacto Primero Escudo, luego VidaLider

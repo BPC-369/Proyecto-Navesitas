@@ -26,7 +26,7 @@ struct FConfiguracionNivel
 	int32 CantidadObstaculosB;
 
 	UPROPERTY()
-	int32 CantidadEnemigos;
+	TMap<int32, int32> EnemigosPorGenerar;
 };
 
 UCLASS()
@@ -40,6 +40,12 @@ public:
 
 	// El método unificado de campaña
 	void CargarNivelPorIndice(int32 IndiceNivel);
+
+	UPROPERTY()
+	FConfiguracionNivel ConfiguracionActual;
+
+	// Función para que el GameMode la lea
+	FConfiguracionNivel GetConfiguracionActual() const { return ConfiguracionActual; }
 
 private:
 	UPROPERTY()
