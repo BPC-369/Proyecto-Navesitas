@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
+
 // Declaraciones anticipadas para no saturar el compilador
 class ANaveComando;
 class ATorreta;
@@ -35,8 +36,15 @@ public:
 	TArray<ANave_CMN*> ListaNavesCMN;
 	TArray<ARobotFrancotirador*> ListaFrancotiradores;
 
+	// Gerente de Niveles (Facade)
+	UPROPERTY()
+	class UFacadeGeneradorNiveles* GerenteDeNiveles;
+
 private:
 	// --- VARIABLES MODIFICABLES DESDE EL CÓDIGO ---
+	// ¡AQUÍ ESTÁ TU VARIABLE PARA ELEGIR EL NIVEL!
+	int32 NivelAIniciar;
+
 	int32 CantNaveComando;
 	int32 CantTorreta;
 	int32 CantRobotLider;

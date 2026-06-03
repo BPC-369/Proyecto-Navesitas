@@ -19,7 +19,7 @@ ANaveComando::ANaveComando()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/pawn/comando03.comando03'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/pawn/Meshy_AI_Leviathan_of_the_Aste_0529012345_texture.Meshy_AI_Leviathan_of_the_Aste_0529012345_texture'"));
 	if (MeshComando.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(MeshComando.Object);
