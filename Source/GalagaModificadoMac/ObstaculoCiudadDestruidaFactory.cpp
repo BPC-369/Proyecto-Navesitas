@@ -16,42 +16,59 @@ AObstaculoCiudadDestruidaFactory::AObstaculoCiudadDestruidaFactory()
 	if (ConoMesh.Succeeded())    MallasArboles.Add(ConoMesh.Object);
 }
 
-AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculo(UWorld* Mundo, FVector Posicion, FRotator Rotacion)
+AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculoEspecifico(UWorld* Mundo, FVector Posicion, FRotator Rotacion, FString Tipo)
 {
 	if (!Mundo) return nullptr;
 
-	FActorSpawnParameters SpawnParams;
-	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+	UStaticMesh* MallaElegida = nullptr;
 
-	AObstaculoDestruido* NuevoObstaculo = Mundo->SpawnActor<AObstaculoDestruido>(AObstaculoDestruido::StaticClass(), Posicion, Rotacion, SpawnParams);
-
-	if (NuevoObstaculo)
+	// Corregido el uso de 'Tipo' para que coincida exactamente con la firma del .h
+	if (Tipo.Equals(TEXT("Edificio")) && MallasEdificios.Num() > 0)
 	{
-		// fabrica de que obstaculo spawnear aleatoriamente
-		int32 TipoSuerte = FMath::RandRange(1, 3);
+		int32 Indice = FMath::RandRange(0, MallasEdificios.Num() - 1);
+		MallaElegida = MallasEdificios[Indice];
+	}
+	else if (Tipo.Equals(TEXT("Arbol")) && MallasArboles.Num() > 0)
+	{
+		int32 Indice = FMath::RandRange(0, MallasArboles.Num() - 1);
+		MallaElegida = MallasArboles[Indice];
+	}
+	else if (Tipo.Equals(TEXT("Roca")) && MallasRocas.Num() > 0)
+	{
+		int32 Indice = FMath::RandRange(0, MallasRocas.Num() - 1);
+		MallaElegida = MallasRocas[Indice];
+	}
 
-		if (TipoSuerte == 1 && MallasEdificios.Num() > 0) // Es un Edificio
+	// Si encontramos la malla correspondiente, spawneamos el objeto
+	if (MallaElegida)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		AObstaculoDestruido* NuevoObstaculo = Mundo->SpawnActor<AObstaculoDestruido>(
+			AObstaculoDestruido::StaticClass(),
+			Posicion,
+			Rotacion,
+			SpawnParams
+		);
+
+		if (NuevoObstaculo)
 		{
-			NuevoObstaculo->MallaComponent->SetStaticMesh(MallasEdificios[0]);
-	
-			float AlturaEdificio = FMath::FRandRange(15.0f, 80.0f); // <-- AQUÍ CONTROLAS QUE SEAN BIEN ALTOS
-			NuevoObstaculo->SetActorScale3D(FVector(20.0f, 20.0f, AlturaEdificio));
-		}
-		else if (TipoSuerte == 2 && MallasRocas.Num() > 0) // Es una Roca/Escombro
-		{
-			NuevoObstaculo->MallaComponent->SetStaticMesh(MallasRocas[0]);
-	
-			float EscalaRoca = FMath::FRandRange(1.0f, 2.0f);
-			NuevoObstaculo->SetActorScale3D(FVector(EscalaRoca, EscalaRoca, EscalaRoca));
-		}
-		else if (TipoSuerte == 3 && MallasArboles.Num() > 0) // Es un Árbol quemado/destruido
-		{
-			NuevoObstaculo->MallaComponent->SetStaticMesh(MallasArboles[0]);;
-	
-			float EscalaArbol = FMath::FRandRange(0.01f, 0.01f);
-			NuevoObstaculo->SetActorScale3D(FVector(0.01f, 0.01f, EscalaArbol));
+			// SOLUCIÓN AL C2039: Buscamos el componente de malla de forma genérica y segura en Unreal
+			UStaticMeshComponent* MeshComp = NuevoObstaculo->FindComponentByClass<UStaticMeshComponent>();
+			if (MeshComp)
+			{
+				MeshComp->SetStaticMesh(MallaElegida);
+				return NuevoObstaculo;
+			}
 		}
 	}
 
-	return NuevoObstaculo;
+	return nullptr;
+}
+// Agrégalo al final de ObstaculoCiudadDestruidaFactory.cpp
+AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculo(UWorld* Mundo, FVector Posicion, FRotator Rotacion)
+{
+	// Redirige al método nuevo que creamos para cumplir el contrato de herencia
+	return CrearObstaculoEspecifico(Mundo, Posicion, Rotacion, TEXT("Edificio"));
 }
