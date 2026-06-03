@@ -57,6 +57,7 @@ public:
 	float GrosorPared;
 
 	virtual void OnConstruction(const FTransform& Transform) override;
+	virtual void GenerarObstaculosProcedurales();
 
 private:
 

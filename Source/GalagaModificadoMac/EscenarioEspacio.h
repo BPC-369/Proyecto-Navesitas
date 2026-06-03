@@ -15,10 +15,9 @@ public:
 	AEscenarioEspacio();
 
 protected:
-	
 	virtual void BeginPlay() override;
 
 private:
-	
+	// Tu función de generación procedural se queda aquí
 	void GenerarEntornoEspacial();
 };

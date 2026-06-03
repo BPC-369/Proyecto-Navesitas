@@ -3,48 +3,30 @@
 
 #include "EscenarioAtmosfera.h"
 #include "Components/StaticMeshComponent.h"
-#include "UObject/ConstructorHelpers.h"
 #include "ObstaculoAtmosferaFactory.h" 
 #include "Engine/World.h"
 
 AEscenarioAtmosfera::AEscenarioAtmosfera()
 {
-	AnchoX = 100000.0f;
-	LargoY = 100000.0f;
-	AltoZ = 10000.0f;
+	// Seteamos únicamente las cantidades para que tus bucles for tengan un valor de inicio
+	CantidadNubesPiso = 500;
+	CantidadMontanas = 25;
 
-	//modificacion para cantidad de obstaculos
-	CantidadNubesPiso = 500; 
-	CantidadMontanas = 25;   
-
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialAtmosferaAsset(TEXT("Material'/Game/Modelos/Atmosfera/MAtmosfera.MAtmosfera'"));
-	if (MaterialAtmosferaAsset.Succeeded() && DomoCielo)
-	{
-		DomoCielo->SetMaterial(0, MaterialAtmosferaAsset.Object);
-	}
-
-	if (DomoCielo)
-	{
-		DomoCielo->SetRelativeScale3D(FVector(5000.0f, 5000.0f, 5000.0f));
-		DomoCielo->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
-	}
-
-	if (Suelo) { Suelo->SetVisibility(false); }
-
-	FabricaObstaculos = CreateDefaultSubobject<AObstaculoAtmosferaFactory>(TEXT("FabricaAtmosfera"));
+	// ¡Todo lo demás se borró de aquí! (Dimensiones, Materiales, Suelo y CreateDefaultSubobject)
 }
 
 void AEscenarioAtmosfera::BeginPlay()
 {
 	Super::BeginPlay();
 
+	// El nivel arranca y ejecuta sus algoritmos procedurales de forma limpia
 	GenerarPisoDeNubes();
 	GenerarMontanas();
 }
 
 void AEscenarioAtmosfera::GenerarPisoDeNubes()
 {
-	// llamado de la fabrica para crear nubes
+	// Cast para usar tu fábrica asignada de manera externa por el Builder
 	AObstaculoAtmosferaFactory* FabricaAtmosfera = Cast<AObstaculoAtmosferaFactory>(FabricaObstaculos);
 	if (!FabricaAtmosfera || !GetWorld()) return;
 
@@ -59,6 +41,7 @@ void AEscenarioAtmosfera::GenerarPisoDeNubes()
 		float EscalaPlanaH = FMath::FRandRange(30.0f, 60.0f);
 		float EscalaPlanaV = FMath::FRandRange(2.0f, 5.0f);
 
+		// Ejecuta tu lógica original de spawn
 		FabricaAtmosfera->CrearNubeEspecifica(GetWorld(), PosicionSpawn, EscalaPlanaH, EscalaPlanaH, EscalaPlanaV);
 	}
 }
