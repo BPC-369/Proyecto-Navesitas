@@ -11,15 +11,7 @@
 
 AEspacioEscenarioBuilder::AEspacioEscenarioBuilder()
 {
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialEspacioAsset(TEXT("Material'/Game/Modelos/MEspacioProfundo.MEspacioProfundo'"));
-	if (MaterialEspacioAsset.Succeeded())
-	{
-		MaterialEspacioGuardado = MaterialEspacioAsset.Object;
-	}
-	else
-	{
-		MaterialEspacioGuardado = nullptr;
-	}
+	MaterialEspacioGuardado = nullptr;
 }
 
 
@@ -34,22 +26,19 @@ void AEspacioEscenarioBuilder::ConstruirDimensiones()
 
 void AEspacioEscenarioBuilder::ConstruirEsteticaCielo()
 {
-
 	if (!EscenarioEnConstruccion) return;
+
+	UMaterialInterface* MaterialEspacioAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/MEspacioProfundo.MEspacioProfundo'"));
 
 	if (EscenarioEnConstruccion->DomoCielo)
 	{
-		if (MaterialEspacioGuardado)
+		if (MaterialEspacioAsset)
 		{
-			EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialEspacioGuardado);
+			EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialEspacioAsset);
 		}
 
 		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(5000.0f));
 		EscenarioEnConstruccion->DomoCielo->SetRelativeLocation(FVector(0.0f));
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("DomoCielo es NULL en el EspacioEscenarioBuilder!"));
 	}
 }
 
@@ -71,10 +60,8 @@ void AEspacioEscenarioBuilder::ConstruirFabricaDeObstaculos()
 	if (Mundo)
 	{
 		FActorSpawnParameters SpawnParams;
-		// Instanciamos tu fábrica de meteoritos
 		AObstaculoEspacioFactory* FabricaEspacio = Mundo->SpawnActor<AObstaculoEspacioFactory>(AObstaculoEspacioFactory::StaticClass(), SpawnParams);
 
-		// Se la inyectamos al producto
 		EscenarioEnConstruccion->FabricaObstaculos = FabricaEspacio;
 	}
 }

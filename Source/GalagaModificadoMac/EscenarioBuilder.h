@@ -39,6 +39,15 @@ public:
 		}
 	}
 
+	int32 CantidadA;
+	int32 CantidadB;
+
+	virtual void SetDatosNivel(int32 CantA, int32 CantB)
+	{
+		CantidadA = CantA;
+		CantidadB = CantB;
+	}
+
 	// LA RECETA: Métodos virtuales que tus builders concretos van a rellenar
 	virtual void ConstruirDimensiones() PURE_VIRTUAL(AEscenarioBuilder::ConstruirDimensiones, );
 	virtual void ConstruirEsteticaCielo() PURE_VIRTUAL(AEscenarioBuilder::ConstruirEsteticaCielo, );

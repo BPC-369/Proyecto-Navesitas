@@ -4,26 +4,34 @@
 #include "AtmosferaEscenarioBuilder.h"
 #include "ObstaculoAtmosferaFactory.h" 
 #include "Components/StaticMeshComponent.h"
+#include "EscenarioAtmosfera.h"
 #include "UObject/ConstructorHelpers.h"
+
 
 void AAtmosferaEscenarioBuilder::ConstruirDimensiones()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Seteo externo de dimensiones migrado de tu constructor viejo
 	EscenarioEnConstruccion->AnchoX = 100000.0f;
 	EscenarioEnConstruccion->LargoY = 100000.0f;
 	EscenarioEnConstruccion->AltoZ = 10000.0f;
+
+	AEscenarioAtmosfera* Atmosfera = Cast<AEscenarioAtmosfera>(EscenarioEnConstruccion);
+	if (Atmosfera)
+	{
+		Atmosfera->CantidadNubesPiso = CantidadA;
+		Atmosfera->CantidadMontanas = CantidadB;
+	}
 }
 
 void AAtmosferaEscenarioBuilder::ConstruirEsteticaCielo()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// Seteo del material del domo migrado de tu constructor viejo
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialAtmosferaAsset(TEXT("Material'/Game/Modelos/Atmosfera/Mcieloapocaliptico.Mcieloapocaliptico'"));
-	if (MaterialAtmosferaAsset.Succeeded() && EscenarioEnConstruccion->DomoCielo)
+	UMaterialInterface* MaterialAtmosferaAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/Atmosfera/Mcieloapocaliptico.Mcieloapocaliptico'"));
+
+	if (MaterialAtmosferaAsset && EscenarioEnConstruccion->DomoCielo)
 	{
-		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialAtmosferaAsset.Object);
+		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialAtmosferaAsset);
 	}
 
 	if (EscenarioEnConstruccion->DomoCielo)

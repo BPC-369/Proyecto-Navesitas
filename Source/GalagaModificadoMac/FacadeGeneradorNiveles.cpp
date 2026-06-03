@@ -33,33 +33,102 @@ void UFacadeGeneradorNiveles::Inicializar(UWorld* WorldContext)
 void UFacadeGeneradorNiveles::InicializarCampana()
 {
 	CampanaNiveles.Empty();
+	FConfiguracionNivel Nivel;
 
-	// {TipoAmbiente, CantidadA, CantidadB, CantidadEnemigos}
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 300; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
+	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+	CampanaNiveles.Add(Nivel);
 
-	// Mundo 1: Espacio Profundo
-	CampanaNiveles.Add({ 1, 50,  0,  10 }); // Nivel 1
-	CampanaNiveles.Add({ 1, 100, 0,  15 }); // Nivel 2
-	CampanaNiveles.Add({ 1, 200, 0,  25 }); // Nivel 3
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
+	Nivel.EnemigosPorGenerar.Add(6, 4);  // 4 Naves CMN
+	CampanaNiveles.Add(Nivel);
 
-	// Mundo 2: Ciudad Destruida (CantidadA = Edificios, CantidadB = Rocas/Árboles)
-	CampanaNiveles.Add({ 2, 60,  20, 15 }); // Nivel 4
-	CampanaNiveles.Add({ 2, 120, 40, 25 }); // Nivel 5
-	CampanaNiveles.Add({ 2, 200, 60, 40 }); // Nivel 6
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(2, 6);  // 6 Torretas (Suelo)
+	Nivel.EnemigosPorGenerar.Add(7, 3);  // 3 Francotiradores (Suelo)
+	Nivel.EnemigosPorGenerar.Add(4, 2);  // 2 Naves Líder (Aire)
+	CampanaNiveles.Add(Nivel);
 
-	// Mundo 3: Atmósfera
-	CampanaNiveles.Add({ 3, 80,  0,  20 }); // Nivel 7
-	CampanaNiveles.Add({ 3, 150, 0,  30 }); // Nivel 8
-	CampanaNiveles.Add({ 3, 300, 0,  45 }); // Nivel 9
+	Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
+	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+	CampanaNiveles.Add(Nivel);
 
-	// Mundo 4: Infiltración Nave Nodriza (CantidadA = Pasillos, CantidadB = Torretas)
-	CampanaNiveles.Add({ 4, 30,  5,  25 }); // Nivel 10
-	CampanaNiveles.Add({ 4, 60,  12, 35 }); // Nivel 11
-	CampanaNiveles.Add({ 4, 90,  20, 50 }); // Nivel 12
+	Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
+	Nivel.EnemigosPorGenerar.Add(6, 4);  // 4 Naves CMN
+	CampanaNiveles.Add(Nivel);
 
-	// Clímax Final (Niveles mixtos/extremos de resistencia)
-	CampanaNiveles.Add({ 1, 400, 0,  60 }); // Nivel 13: Super Lluvia Meteoritos
-	CampanaNiveles.Add({ 2, 250, 90, 70 }); // Nivel 14: Megaciudad infestada
-	CampanaNiveles.Add({ 4, 150, 35, 99 }); // Nivel 15: Núcleo de la Nave Nodriza (Jefe Final)
+	Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(2, 6);  // 6 Torretas (Suelo)
+	Nivel.EnemigosPorGenerar.Add(7, 3);  // 3 Francotiradores (Suelo)
+	Nivel.EnemigosPorGenerar.Add(4, 2);  // 2 Naves Líder (Aire)
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
+	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
+	Nivel.EnemigosPorGenerar.Add(6, 4);  // 4 Naves CMN
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(2, 6);  // 6 Torretas (Suelo)
+	Nivel.EnemigosPorGenerar.Add(7, 3);  // 3 Francotiradores (Suelo)
+	Nivel.EnemigosPorGenerar.Add(4, 2);  // 2 Naves Líder (Aire)
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
+	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
+	Nivel.EnemigosPorGenerar.Add(6, 4);  // 4 Naves CMN
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(2, 6);  // 6 Torretas (Suelo)
+	Nivel.EnemigosPorGenerar.Add(7, 3);  // 3 Francotiradores (Suelo)
+	Nivel.EnemigosPorGenerar.Add(4, 2);  // 2 Naves Líder (Aire)
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
+	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
+	Nivel.EnemigosPorGenerar.Add(6, 4);  // 4 Naves CMN
+	CampanaNiveles.Add(Nivel);
+
+	Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(2, 6);  // 6 Torretas (Suelo)
+	Nivel.EnemigosPorGenerar.Add(7, 3);  // 3 Francotiradores (Suelo)
+	Nivel.EnemigosPorGenerar.Add(4, 2);  // 2 Naves Líder (Aire)
+	CampanaNiveles.Add(Nivel);
 }
 
 void UFacadeGeneradorNiveles::DestruirNivelAnterior()
@@ -101,6 +170,8 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
 	}
 
 	DestruirNivelAnterior();
+
+	ConfiguracionActual = CampanaNiveles[IndiceNivel];
 
 	FConfiguracionNivel DatosNivel = CampanaNiveles[IndiceNivel];
 
@@ -160,14 +231,23 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
 
 	if (Director && BuilderElegido && ClaseEscenarioProducto)
 	{
+		// 1. PASAMOS LOS DATOS AL BUILDER (100 meteoritos, 50 nubes, etc.)
+		BuilderElegido->SetDatosNivel(DatosNivel.CantidadObstaculosA, DatosNivel.CantidadObstaculosB);
+
+		// 2. EL DIRECTOR CONSTRUYE Y ASIGNA LA FÁBRICA
 		EscenarioActivo = Director->ConstruirEscenario(BuilderElegido, ClaseEscenarioProducto);
 
+		// 3. LA ORDEN DE SPAWN (Ahora sí la fábrica existe)
+		if (EscenarioActivo)
+		{
+			EscenarioActivo->GenerarObstaculosDelMapa();
+		}
 
-		// limpieza de builders
+		// Limpieza de memoria
 		BuilderElegido->Destroy();
 		Director->Destroy();
 
-		FString MensajeInfo = FString::Printf(TEXT("Fachada: Cargado Nivel %d (Ambiente %d)"), (IndiceNivel + 1), DatosNivel.TipoAmbiente);
+		FString MensajeInfo = FString::Printf(TEXT("Fachada: Cargado Nivel %d"), (IndiceNivel + 1));
 		GEngine->AddOnScreenDebugMessage(-1, 4.f, FColor::Cyan, MensajeInfo);
 	}
 }

@@ -16,7 +16,6 @@ AEscenarioCiudad::AEscenarioCiudad()
 void AEscenarioCiudad::BeginPlay()
 {
 	Super::BeginPlay();
-	GenerarObstaculosProcedurales();
 }
 
 void AEscenarioCiudad::GenerarObstaculosProcedurales()

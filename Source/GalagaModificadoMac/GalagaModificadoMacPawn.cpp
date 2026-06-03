@@ -283,60 +283,6 @@ void AGalagaModificadoMacPawn::Transformar()
 	}
 }
 
-void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
-{
-	UWorld* const World = NaveContexto->GetWorld();
-	if (World != nullptr)
-	{
-		const FRotator FireRotation = FireDirection.Rotation();
-		FActorSpawnParameters SpawnParams;
-		SpawnParams.Owner = NaveContexto;
-
-		if (NaveContexto->BombasRacimoRestantes > 0)
-		{
-			NaveContexto->BombasRacimoRestantes--;
-			for (int i = 0; i < 8; i++)
-			{
-				FRotator RacimoRot = FireRotation;
-				RacimoRot.Yaw += (45.0f * i);
-				World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
-			}
-		}
-		else if (NaveContexto->TiempoDisparoCuadruple > 0.0f)
-		{
-			float Sep1 = 15.0f;
-			float Sep2 = 45.0f;
-
-			FVector Izq1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep1, NaveContexto->GunOffset.Z));
-			FVector Der1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep1, NaveContexto->GunOffset.Z));
-			FVector Izq2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep2, NaveContexto->GunOffset.Z));
-			FVector Der2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep2, NaveContexto->GunOffset.Z));
-
-			World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
-			World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
-			World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
-			World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
-		}
-		else
-		{
-			float SeparacionCanones = 23.0f;
-			FVector OffsetIzquierdo = FVector(NaveContexto->GunOffset.X, -SeparacionCanones, NaveContexto->GunOffset.Z);
-			FVector OffsetDerecho = FVector(NaveContexto->GunOffset.X, SeparacionCanones, NaveContexto->GunOffset.Z);
-
-			FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
-			FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
-
-			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
-			World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
-		}
-	}
-}
-
-void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
-{
-	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡Los robots no pueden disparar!"));
-}
-
 float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (TiempoInmunidad > 0.0f) return 0.0f;
@@ -626,29 +572,3 @@ FDecoradorInmunidad::FDecoradorInmunidad(IEstadoNave* Estado, AGalagaModificadoM
 	Contexto->MultiplicadorDanio = 2.0f;
 }
 
-// IMPLEMENTACIONES PARA ESTADOS DE TRANSFORMACIÓN
-void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
-{
-	if (NaveContexto != nullptr)
-	{
-		NaveContexto->ConvertirEnRobot();
-		NaveContexto->CambiarEstado(new FEstadoNaveRobot());
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("¡Transformación: Modo Robot Activo!"));
-	}
-}
-
-void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
-{
-	if (NaveContexto != nullptr)
-	{
-		NaveContexto->ConvertirEnNave();
-		NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
-		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("¡Transformación: Modo Nave Activo!"));
-	}
-}
-
-// IMPLEMENTACIÓN PARA DETECTAR COLISIONES (OVERLAP)
-void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
-{
-	Super::NotifyActorBeginOverlap(OtherActor);
-}

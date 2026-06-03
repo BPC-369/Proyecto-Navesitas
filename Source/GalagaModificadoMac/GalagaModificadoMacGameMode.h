@@ -3,7 +3,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/GameModeBase.h"
 
-// Declaraciones anticipadas para no saturar el compilador
+// Declaraciones anticipadas
 class ANaveComando;
 class ATorreta;
 class ARobot_Lider;
@@ -24,10 +24,9 @@ public:
 
 	virtual void BeginPlay() override;
 
-	// La función maestra que invocará al ejército
-	void GenerarEjercito();
+	void GenerarEjercito(TMap<int32, int32> EnemigosDelNivel);
 
-	// --- CONTENEDORES PUROS DE C++ (SIN UPROPERTY) ---
+	// --- CONTENEDORES PUROS DE C++ ---
 	TArray<ANaveComando*> ListaNavesComando;
 	TArray<ATorreta*> ListaTorretas;
 	TArray<ARobot_Lider*> ListaRobotsLider;
@@ -36,20 +35,9 @@ public:
 	TArray<ANave_CMN*> ListaNavesCMN;
 	TArray<ARobotFrancotirador*> ListaFrancotiradores;
 
-	// Gerente de Niveles (Facade)
 	UPROPERTY()
 	class UFacadeGeneradorNiveles* GerenteDeNiveles;
 
-private:
-	// --- VARIABLES MODIFICABLES DESDE EL CÓDIGO ---
-	// ¡AQUÍ ESTÁ TU VARIABLE PARA ELEGIR EL NIVEL!
+	// Variable C++ pura para elegir nivel
 	int32 NivelAIniciar;
-
-	int32 CantNaveComando;
-	int32 CantTorreta;
-	int32 CantRobotLider;
-	int32 CantNaveLider;
-	int32 CantNaveKamikase;
-	int32 CantNaveCMN;
-	int32 CantFrancotirador;
 };

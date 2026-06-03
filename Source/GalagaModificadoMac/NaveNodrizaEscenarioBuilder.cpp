@@ -29,12 +29,11 @@ void ANaveNodrizaEscenarioBuilder::ConstruirEsteticaCielo()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// Como estamos DENTRO de una nave, no deberíamos ver estrellas ni nubes.
-	// Podemos usar un material de rejilla metálica oscura o paneles para el techo.
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialTechoAsset(TEXT("Material'/Game/Modelos/navenodriza/Mnavenodriza.Mnavenodriza'"));
-	if (MaterialTechoAsset.Succeeded() && EscenarioEnConstruccion->DomoCielo)
+	UMaterialInterface* MaterialTechoAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/navenodriza/Mnavenodriza.Mnavenodriza'"));
+
+	if (MaterialTechoAsset && EscenarioEnConstruccion->DomoCielo)
 	{
-		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialTechoAsset.Object);
+		EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialTechoAsset);
 	}
 
 	if (EscenarioEnConstruccion->DomoCielo)
@@ -47,16 +46,15 @@ void ANaveNodrizaEscenarioBuilder::ConstruirFisicasSuelo()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// El suelo de la nave SÍ debe ser visible para que el jugador sienta el metal bajo la nave
 	if (EscenarioEnConstruccion->Suelo)
 	{
 		EscenarioEnConstruccion->Suelo->SetVisibility(true);
 
-		// Opcional: Si tienes un material de piso metálico, se lo puedes clavar aquí mismo
-		static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialPisoAsset(TEXT("Material'/Game/Modelos/Nave/MPisoMetal.MPisoMetal'"));
-		if (MaterialPisoAsset.Succeeded())
+		UMaterialInterface* MaterialPisoAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/Nave/MPisoMetal.MPisoMetal'"));
+
+		if (MaterialPisoAsset)
 		{
-			EscenarioEnConstruccion->Suelo->SetMaterial(0, MaterialPisoAsset.Object);
+			EscenarioEnConstruccion->Suelo->SetMaterial(0, MaterialPisoAsset);
 		}
 	}
 }

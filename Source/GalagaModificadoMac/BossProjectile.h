@@ -38,5 +38,5 @@ private:
         UNiagaraComponent* VFXNiagara;
 
     FVector SpawnLocation;
-    float MaxTravelDistance = 5000.0f;
+    //float MaxTravelDistance = 5000.0f;
 };  

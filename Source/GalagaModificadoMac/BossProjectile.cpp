@@ -12,7 +12,7 @@
 ABossProjectile::ABossProjectile()
 {
     PrimaryActorTick.bCanEverTick = true;
-
+    InitialLifeSpan = 5.0f;
     // Colisionador esférico invisible como raíz
     Colisionador = CreateDefaultSubobject<USphereComponent>(TEXT("Colisionador"));
     Colisionador->InitSphereRadius(25.0f);          // Ajusta el tamaño según tu VFX
@@ -66,10 +66,11 @@ void ABossProjectile::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     // Destrucción por distancia
+    /*
     if (FVector::DistSquared(GetActorLocation(), SpawnLocation) > FMath::Square(MaxTravelDistance))
     {
         Destroy();
-    }
+    }*/
 }
 
 void ABossProjectile::ConfigurarProyectil(float NuevaVelocidad, float NuevoDano, FVector Escala)

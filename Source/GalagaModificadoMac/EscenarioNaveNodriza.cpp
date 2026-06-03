@@ -15,7 +15,6 @@ AEscenarioNaveNodriza::AEscenarioNaveNodriza()
 void AEscenarioNaveNodriza::BeginPlay()
 {
 	Super::BeginPlay();
-	GenerarObstaculosProcedurales();
 }
 
 void AEscenarioNaveNodriza::GenerarObstaculosProcedurales()
@@ -28,7 +27,6 @@ void AEscenarioNaveNodriza::GenerarObstaculosProcedurales()
 
 	float Margen = 400.0f;
 
-	// Bucle para sembrar pasillos o estructuras defensivas internas
 	for (int32 i = 0; i < CantidadPasillos; i++)
 	{
 		float RndX = FMath::FRandRange((-AnchoX / 2.0f) + Margen, (AnchoX / 2.0f) - Margen);
@@ -40,13 +38,12 @@ void AEscenarioNaveNodriza::GenerarObstaculosProcedurales()
 		MiFabrica->CrearObstaculoEspecifico(Mundo, PosicionSpawn, Rotacion, TEXT("Pasillo"));
 	}
 
-	// Bucle para sembrar las torretas láser fijas en el mapa
 	for (int32 i = 0; i < CantidadTorretas; i++)
 	{
 		float RndX = FMath::FRandRange((-AnchoX / 2.0f) + Margen, (AnchoX / 2.0f) - Margen);
 		float RndY = FMath::FRandRange((-LargoY / 2.0f) + Margen, (LargoY / 2.0f) - Margen);
 
-		FVector PosicionSpawn(RndX, RndY, 50.0f); // Un poco elevadas del suelo
+		FVector PosicionSpawn(RndX, RndY, 50.0f);
 		FRotator Rotacion(0.0f, 0.0f, 0.0f);
 
 		MiFabrica->CrearObstaculoEspecifico(Mundo, PosicionSpawn, Rotacion, TEXT("Torreta"));
