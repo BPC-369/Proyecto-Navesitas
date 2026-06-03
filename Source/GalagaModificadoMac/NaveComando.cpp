@@ -36,7 +36,7 @@ void ANaveComando::BeginPlay()
 	GetWorld()->GetTimerManager().SetTimer(TimerSpawn, this, &ANaveComando::GestionarEscoltas, 2.5f, true);
 }
 
-//la nave ataca de frente y laterales
+// La nave ataca de frente y laterales
 void ANaveComando::Atacar()
 {
 	UWorld* const World = GetWorld();
@@ -55,12 +55,14 @@ void ANaveComando::Atacar()
 	World->SpawnActor<AProyectilJefe>(Derecha, GetActorRightVector().Rotation(), Params);
 	World->SpawnActor<AProyectilJefe>(Izquierda, (-GetActorRightVector()).Rotation(), Params);
 }
-//aqui determinamos donde se van a generar las naves invocadas
+
+// Aquí determinamos dónde se van a generar las naves invocadas
 void ANaveComando::GestionarEscoltas()
 {
 	UWorld* const World = GetWorld();
 	if (!World) return;
 
+	// Limpieza de escoltas muertas
 	for (int32 i = EscoltasActivas.Num() - 1; i >= 0; i--)
 	{
 		if (!IsValid(EscoltasActivas[i])) { EscoltasActivas.RemoveAt(i); }
@@ -85,10 +87,12 @@ void ANaveComando::GestionarEscoltas()
 				{
 					CompEscolta->Faccion = ComponenteCombate->Faccion;
 				}
+
+				// 3. Ignoramos colisiones entre la nave comando y su escolta (TU MÉTODO)
 				UPrimitiveComponent* ColliderEscolta = NuevaEscolta->FindComponentByClass<UPrimitiveComponent>();
 				if (ColliderEscolta)
 				{
-					ColliderEscolta->IgnoreActorWhenMoving(this, true); // <--- CORRECCIÓN AQUÍ
+					ColliderEscolta->IgnoreActorWhenMoving(this, true);
 				}
 
 				// 4. Agregamos a la lista

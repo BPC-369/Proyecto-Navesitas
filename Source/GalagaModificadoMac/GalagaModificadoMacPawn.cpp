@@ -200,6 +200,39 @@ void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 	}
 }
 
+// ================ EMBESTIDA DEL ROBOT (FUSIONADO DESDE MASTER) ================
+void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
+{
+	Super::NotifyActorBeginOverlap(OtherActor);
+
+	// 1. Verificamos si estamos caminando (Forma Robot)
+	if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Walking)
+	{
+		// 2. Nos aseguramos de no hacernos daño a nosotros mismos
+		if (OtherActor != nullptr && OtherActor != this)
+		{
+			// 3. Comprobamos si el objeto chocado tiene tu Componente de Combate y es enemigo
+			UComponenteCombate* CompEnemigo = OtherActor->FindComponentByClass<UComponenteCombate>();
+
+			if (CompEnemigo != nullptr && CompEnemigo->Faccion == FName("Enemigo"))
+			{
+				float DanioPorChoque = 15.0f; // Puedes ajustar este valor
+
+				// Aplicamos el daño oficial de Unreal
+				UGameplayStatics::ApplyDamage(
+					OtherActor,
+					DanioPorChoque * MultiplicadorDanio,
+					GetController(),
+					this,
+					UDamageType::StaticClass()
+				);
+
+				GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡EMBESTIDA ROBOT!"));
+			}
+		}
+	}
+}
+
 void AGalagaModificadoMacPawn::ShotTimerExpired()
 {
 	bCanFire = true;
@@ -389,33 +422,6 @@ FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModif
 	GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Orange, TEXT("BOMBITAS"));
 }
 
-void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
-{
-	if (NaveContexto->BombasRacimoRestantes > 0)
-	{
-		UWorld* const World = NaveContexto->GetWorld();
-		if (World != nullptr)
-		{
-			const FRotator FireRotation = FireDirection.Rotation();
-			FActorSpawnParameters SpawnParams;
-			SpawnParams.Owner = NaveContexto;
-
-			NaveContexto->BombasRacimoRestantes--;
-
-			for (int i = 0; i < 8; i++)
-			{
-				FRotator RacimoRot = FireRotation;
-				RacimoRot.Yaw += (45.0f * i);
-				World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
-			}
-		}
-	}
-	else
-	{
-		FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
-	}
-}
-
 FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
 	Contexto->VelocidadOriginalNave = Contexto->MoveSpeed;
@@ -494,10 +500,4 @@ void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveCont
 		NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
 		GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Yellow, TEXT("¡Transformación: Modo Nave Activo!"));
 	}
-}
-
-// IMPLEMENTACIÓN PARA DETECTAR COLISIONES (OVERLAP)
-void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
-{
-	Super::NotifyActorBeginOverlap(OtherActor);
 }
