@@ -35,7 +35,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
 	CampanaNiveles.Empty();
 	FConfiguracionNivel Nivel;
 
-	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 300; Nivel.CantidadObstaculosB = 0;
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 3000; Nivel.CantidadObstaculosB = 3000;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
 	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
@@ -240,7 +240,7 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
 		// 3. LA ORDEN DE SPAWN (Ahora sí la fábrica existe)
 		if (EscenarioActivo)
 		{
-			EscenarioActivo->GenerarObstaculosDelMapa();
+			EscenarioActivo->GenerarObstaculosProcedurales();
 		}
 
 		// Limpieza de memoria

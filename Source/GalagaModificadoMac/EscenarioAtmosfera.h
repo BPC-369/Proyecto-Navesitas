@@ -24,7 +24,7 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Configuracion Atmosfera")
 	int32 CantidadMontanas;
-
+	virtual void GenerarObstaculosProcedurales() override;
 private:
 	// Tu lógica procedural se queda en esta clase
 	void GenerarPisoDeNubes();

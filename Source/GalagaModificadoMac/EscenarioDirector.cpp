@@ -12,14 +12,18 @@ AEscenarioBase* AEscenarioDirector::ConstruirEscenario(AEscenarioBuilder* Builde
 {
 	if (!BuilderElegido || !ClaseEscenario) return nullptr;
 
-	// Coreografía secuencial del patrón Builder
 	BuilderElegido->InstanciarEscenario(ClaseEscenario);
 	BuilderElegido->ConstruirDimensiones();
+
+	// ¡NUEVO! Expande los muros físicos a la escala real del Builder (Ej: 100000)
+	if (BuilderElegido->GetEscenario())
+	{
+		BuilderElegido->GetEscenario()->AplicarEscalaFisica();
+	}
+
 	BuilderElegido->ConstruirEsteticaCielo();
 	BuilderElegido->ConstruirFisicasSuelo();
 	BuilderElegido->ConstruirFabricaDeObstaculos();
-	//BuilderElegido->ConstruirFabricaDeEnemigos(); // Espacio reservado para tus compañeros
 
-	// Retornamos el nivel 100% equipado
 	return BuilderElegido->GetEscenario();
 }

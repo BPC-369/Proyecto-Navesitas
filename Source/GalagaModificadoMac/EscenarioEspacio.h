@@ -13,11 +13,10 @@ class GALAGAMODIFICADOMAC_API AEscenarioEspacio : public AEscenarioBase
 
 public:
 	AEscenarioEspacio();
-
+	virtual void GenerarObstaculosProcedurales() override;
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	// Tu función de generación procedural se queda aquí
-	void GenerarEntornoEspacial();
 };
