@@ -18,10 +18,11 @@ void AEscenarioEspacio::BeginPlay()
 	if (Suelo)
 	{
 		Suelo->SetVisibility(false);
+		Suelo->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	}
 }
 
-void AEscenarioEspacio::GenerarEntornoEspacial()
+void AEscenarioEspacio::GenerarObstaculosProcedurales()
 {
 	if (!FabricaObstaculos || !GetWorld()) return;
 

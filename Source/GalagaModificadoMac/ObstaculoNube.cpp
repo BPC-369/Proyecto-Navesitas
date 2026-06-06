@@ -9,24 +9,21 @@ AObstaculoNube::AObstaculoNube()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	MallaNube = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaNube"));
-	RootComponent = MallaNube;
-
 	// malla de nubes
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> EsferaMesh(TEXT("StaticMesh'/Game/Modelos/nubes/Cloud.CLOUD'"));
 	if (EsferaMesh.Succeeded())
 	{
-		MallaNube->SetStaticMesh(EsferaMesh.Object);
+		MallaComponent->SetStaticMesh(EsferaMesh.Object);
 	}
 
 	// material(color) de nubes
 	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatDefecto(TEXT("Material'/Game/Modelos/nubes/Material.Material'"));
 	if (MatDefecto.Succeeded())
 	{
-		MallaNube->SetMaterial(0, MatDefecto.Object);
+		MallaComponent->SetMaterial(0, MatDefecto.Object);
 	}
 
 	//para que tenga colision
-	MallaNube->SetCollisionProfileName(TEXT("BlockAllSubmissions"));
+	MallaComponent->SetCollisionProfileName(TEXT("BlockAllSubmissions"));
 }
 

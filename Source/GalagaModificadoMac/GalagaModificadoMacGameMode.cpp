@@ -2,6 +2,7 @@
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
+#include "GalagaModificadoMacPawn.h"
 
 // Includes de los sistemas enemigos de tus compañeros
 #include "NaveComando.h"
@@ -18,7 +19,8 @@
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
 	// 1 = espacio, 2 = cudad, 3 = atmosfera, 4 = nave nodriza
-	NivelAIniciar = 0;
+	NivelAIniciar = 1;
+	//DefaultPawnClass = AGalagaModificadoMacPawn::StaticClass();
 }
 
 void AGalagaModificadoMacGameMode::BeginPlay()

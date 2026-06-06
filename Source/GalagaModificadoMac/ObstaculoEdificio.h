@@ -3,20 +3,17 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "GameFramework/Actor.h"
+#include "ObstaculoDestruido.h"
 #include "Components/StaticMeshComponent.h"
 #include "ObstaculoEdificio.generated.h"
 
 UCLASS()
-class GALAGAMODIFICADOMAC_API AObstaculoEdificio : public AActor
+class GALAGAMODIFICADOMAC_API AObstaculoEdificio : public AObstaculoDestruido
 {
 	GENERATED_BODY()
 
 public:
 	AObstaculoEdificio();
-
-	UPROPERTY(VisibleAnywhere, Category = "Obstaculo")
-	UStaticMeshComponent* MallaEdificio;
 
 	void AsignarMalla(UStaticMeshComponent* MallaOrigen);
 };

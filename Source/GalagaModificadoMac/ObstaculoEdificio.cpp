@@ -7,19 +7,16 @@ AObstaculoEdificio::AObstaculoEdificio()
 {
 	PrimaryActorTick.bCanEverTick = false;
 
-	MallaEdificio = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaEdificio"));
-	RootComponent = MallaEdificio;
-
 	// que tenga colisiones
-	MallaEdificio->SetCollisionProfileName(TEXT("BlockAll"));
+	MallaComponent->SetCollisionProfileName(TEXT("BlockAll"));
 }
 
 void AObstaculoEdificio::AsignarMalla(UStaticMeshComponent* MallaOrigen)
 {
-	if (MallaOrigen && MallaEdificio)
+	if (MallaOrigen && MallaComponent)
 	{
-		MallaEdificio->SetStaticMesh(MallaOrigen->GetStaticMesh());
-		MallaEdificio->SetMaterial(0, MallaOrigen->GetMaterial(0));
+		MallaComponent->SetStaticMesh(MallaOrigen->GetStaticMesh());
+		MallaComponent->SetMaterial(0, MallaOrigen->GetMaterial(0));
 	}
 }
 

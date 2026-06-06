@@ -16,9 +16,6 @@ AEscenarioAtmosfera::AEscenarioAtmosfera()
 void AEscenarioAtmosfera::BeginPlay()
 {
 	Super::BeginPlay();
-
-	GenerarPisoDeNubes();
-	GenerarMontanas();
 }
 
 void AEscenarioAtmosfera::GenerarPisoDeNubes()
@@ -57,4 +54,10 @@ void AEscenarioAtmosfera::GenerarMontanas()
 
 		FabricaAtmosfera->CrearMontanaEspecifica(GetWorld(), PosicionSpawn);
 	}
+}
+
+void AEscenarioAtmosfera::GenerarObstaculosProcedurales()
+{
+	GenerarPisoDeNubes();
+	GenerarMontanas();
 }
