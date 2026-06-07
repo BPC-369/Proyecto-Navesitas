@@ -18,7 +18,7 @@
 #include "EscenarioAtmosfera.h"
 #include "EscenarioNaveNodriza.h"
 
-// Clase base de obstáculos para la limpieza
+// Clase base de obst�culos para la limpieza
 #include "ObstaculoDestruido.h" 
 
 void UFacadeGeneradorNiveles::Inicializar(UWorld* WorldContext)
@@ -33,17 +33,17 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     CampanaNiveles.Empty();
     FConfiguracionNivel Nivel;
 
-    Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 3000; Nivel.CantidadObstaculosB = 3000;
-    Nivel.EnemigosPorGenerar.Empty();
-    Nivel.EnemigosPorGenerar.Add(5, 5);
-    Nivel.EnemigosPorGenerar.Add(1, 2);
-    CampanaNiveles.Add(Nivel);
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 3000; Nivel.CantidadObstaculosB = 3000;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
+	Nivel.EnemigosPorGenerar.Add(8, 5); // ID 1 (Comando) -> Cantidad: 2
+	CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
-    Nivel.EnemigosPorGenerar.Empty();
-    Nivel.EnemigosPorGenerar.Add(5, 10);
-    Nivel.EnemigosPorGenerar.Add(6, 4);
-    CampanaNiveles.Add(Nivel);
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.EnemigosPorGenerar.Empty();
+	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
+	Nivel.EnemigosPorGenerar.Add(1, 4);  // 4 Naves CMN
+	CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
     Nivel.EnemigosPorGenerar.Empty();
@@ -159,7 +159,7 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
 
     if (!CampanaNiveles.IsValidIndex(IndiceNivel))
     {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("¡Campaña Completada con Éxito!"));
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("�Campa�a Completada con �xito!"));
         return;
     }
 
@@ -248,6 +248,6 @@ void UFacadeGeneradorNiveles::AplicarDificultad(const FString& Difficulty)
         Par.Value = FMath::Max(1, NuevaCantidad);
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Dificultad aplicada: %s | Multiplicador cantidad: %f | Multiplicador vida/daño: %f"),
+    UE_LOG(LogTemp, Warning, TEXT("Dificultad aplicada: %s | Multiplicador cantidad: %f | Multiplicador vida/da�o: %f"),
         *Difficulty, MultiplicadorCantidad, MultiplicadorDificultad);
 }
