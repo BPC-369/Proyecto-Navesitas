@@ -11,6 +11,7 @@ class ANaveLider;
 class ANaveKamikase;
 class ANave_CMN;
 class ARobotFrancotirador;
+class ABossEstatico;
 
 #include "GalagaModificadoMacGameMode.generated.h"
 
@@ -34,6 +35,7 @@ public:
 	TArray<ANaveKamikase*> ListaNavesKamikase;
 	TArray<ANave_CMN*> ListaNavesCMN;
 	TArray<ARobotFrancotirador*> ListaFrancotiradores;
+	TArray<ABossEstatico*> ListaBossEstaticos;
 
 	UPROPERTY()
 	class UFacadeGeneradorNiveles* GerenteDeNiveles;

@@ -38,13 +38,13 @@ void UFacadeGeneradorNiveles::InicializarCampana()
 	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 3000; Nivel.CantidadObstaculosB = 3000;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
-	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+	Nivel.EnemigosPorGenerar.Add(8, 5); // ID 1 (Comando) -> Cantidad: 2
 	CampanaNiveles.Add(Nivel);
 
 	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
-	Nivel.EnemigosPorGenerar.Add(6, 4);  // 4 Naves CMN
+	Nivel.EnemigosPorGenerar.Add(1, 4);  // 4 Naves CMN
 	CampanaNiveles.Add(Nivel);
 
 	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
