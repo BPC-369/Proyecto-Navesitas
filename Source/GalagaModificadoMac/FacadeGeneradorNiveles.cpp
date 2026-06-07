@@ -36,7 +36,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
 	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 3000; Nivel.CantidadObstaculosB = 3000;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
-	Nivel.EnemigosPorGenerar.Add(8, 5); // ID 1 (Comando) -> Cantidad: 2
+	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
 	CampanaNiveles.Add(Nivel);
 
 	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
@@ -99,7 +99,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
-    Nivel.EnemigosPorGenerar.Add(6, 4);
+    Nivel.EnemigosPorGenerar.Add(1, 1);
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
@@ -112,7 +112,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
-    Nivel.EnemigosPorGenerar.Add(1, 2);
+    Nivel.EnemigosPorGenerar.Add(8, 1);
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
@@ -159,7 +159,7 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
 
     if (!CampanaNiveles.IsValidIndex(IndiceNivel))
     {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("�Campa�a Completada con �xito!"));
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Campana Completada con exito!"));
         return;
     }
 
@@ -237,8 +237,8 @@ void UFacadeGeneradorNiveles::AplicarDificultad(const FString& Difficulty)
     }
     else if (Difficulty == TEXT("Hard"))
     {
-        MultiplicadorCantidad = 1.5f;
-        MultiplicadorDificultad = 2.0f;
+        MultiplicadorCantidad = 2.0f;
+        MultiplicadorDificultad = 3.0f;
     }
     // Normal: ambos se quedan en 1.0
 

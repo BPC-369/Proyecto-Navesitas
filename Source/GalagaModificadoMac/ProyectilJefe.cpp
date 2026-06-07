@@ -6,7 +6,7 @@
 
 AProyectilJefe::AProyectilJefe()
 {
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/TwinStick/Meshes/TwinStickProjectile.TwinStickProjectile'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("StaticMesh'/Game/TwinStick/Meshes/NaveComandoProjectile.NaveComandoProjectile'"));
 	DanoProyectil = 250.0f; // Asignaci�n del usuario
 
 	if (MeshAsset.Succeeded())
@@ -36,7 +36,7 @@ AProyectilJefe::AProyectilJefe()
 			MallaEncontrada->OnComponentBeginOverlap.AddDynamic(this, &AProyectilJefe::SobreSolapamientoMalla);
 		}
 
-		SetActorScale3D(FVector(3.5f, 3.5f, 3.5f));
+		SetActorScale3D(FVector(15.0f, 15.0f, 15.0f));
 	}
 
 	UProjectileMovementComponent* Movimiento = Cast<UProjectileMovementComponent>(GetComponentByClass(UProjectileMovementComponent::StaticClass()));

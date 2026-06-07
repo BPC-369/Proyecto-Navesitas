@@ -1,81 +1,111 @@
 #include "NaveEnemigoAereo.h"
 #include "Components/StaticMeshComponent.h"
-#include "Components/SceneComponent.h" // Incluido para la raíz neutral de escena
+#include "Components/SceneComponent.h"
 #include "Kismet/GameplayStatics.h"
-#include "TimerManager.h"
-#include "ComponenteCombate.h" // Incluimos tu chip de vida
+#include "ComponenteCombate.h"
+#include "Particles/ParticleSystem.h"
+#include "UObject/ConstructorHelpers.h"
 
 ANaveEnemigoAereo::ANaveEnemigoAereo()
 {
-	PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = true;
 
-	// 1. Creamos un componente de escena vacío para que sea la NUEVA RAÍZ neutral del Actor
-	USceneComponent* EscenaRaiz = CreateDefaultSubobject<USceneComponent>(TEXT("EscenaRaiz"));
-	RootComponent = EscenaRaiz;
+    USceneComponent* EscenaRaiz = CreateDefaultSubobject<USceneComponent>(TEXT("EscenaRaiz"));
+    RootComponent = EscenaRaiz;
 
-	// 2. Creamos la malla visual
-	MallaEnemiga = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaEnemiga"));
+    MallaEnemiga = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaEnemiga"));
+    MallaEnemiga->SetupAttachment(RootComponent);
+    MallaEnemiga->SetNotifyRigidBodyCollision(true);
+    MallaEnemiga->SetCollisionProfileName(TEXT("BlockAllDynamic"));
 
-	// 3. Colgamos la malla de la raíz neutral (así se puede rotar de forma independiente)
-	MallaEnemiga->SetupAttachment(RootComponent);
+    ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
+    if (ComponenteCombate)
+    {
+        ComponenteCombate->VidaMaxima = 100.0f;
+        ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
+        ComponenteCombate->Faccion = FName("Enemigo");
+    }
 
-	MallaEnemiga->SetNotifyRigidBodyCollision(true);
-	MallaEnemiga->SetCollisionProfileName(TEXT("BlockAllDynamic"));
+    Velocidad = 500.0f;
+    DanioAtaque = 1000.0f;
+    FrecuenciaAtaque = 2.0f;
+    bTieneEscudo = false;
 
-	// 4. Instalamos el chip de estadísticas de combate
-	ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
+    // --- Explosión por defecto (pequeña) para todas las naves ---
+    // Reemplaza esta ruta con la de tu explosión pequeña (usa Copy Reference)
+    RutaExplosion = TEXT("ParticleSystem'/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Side.P_Explosion_Side'");
+    ExplosionScale = 1.0f;
 
-	if (ComponenteCombate != nullptr)
-	{
-		ComponenteCombate->VidaMaxima = 100.0f;
-		ComponenteCombate->VidaActual = ComponenteCombate->VidaMaxima;
-		ComponenteCombate->Faccion = FName("Enemigo");
-	}
+    // Si quieres sonido para todas, define la ruta aquí
+    // RutaSonidoExplosion = TEXT("/Game/Audio/ExplosionSound");
+}
 
-	Velocidad = 500.0f;
-	DanioAtaque = 1000.0f;
-	FrecuenciaAtaque = 2.0f;
-	bTieneEscudo = false;
+void ANaveEnemigoAereo::BeginPlay()
+{
+    Super::BeginPlay();
+
+    // Cargar el efecto de explosión si hay ruta definida y aún no se ha cargado
+    if (!ExplosionEffect && !RutaExplosion.IsEmpty())
+    {
+        ExplosionEffect = LoadObject<UParticleSystem>(nullptr, *RutaExplosion);
+    }
+
+    if (!ExplosionSound && !RutaSonidoExplosion.IsEmpty())
+    {
+        ExplosionSound = LoadObject<USoundBase>(nullptr, *RutaSonidoExplosion);
+    }
 }
 
 void ANaveEnemigoAereo::Tick(float DeltaSeconds)
 {
-	Super::Tick(DeltaSeconds);
-
-	Volar(DeltaSeconds);
+    Super::Tick(DeltaSeconds);
+    Volar(DeltaSeconds);
 }
 
 void ANaveEnemigoAereo::Volar(float DeltaSeconds)
 {
-	APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
-
-	if (PlayerPawn)
-	{
-		FVector DireccionHaciaJugador = (PlayerPawn->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-		FVector NuevoDesplazamiento = DireccionHaciaJugador * Velocidad * DeltaSeconds;
-
-		AddActorWorldOffset(NuevoDesplazamiento, true);
-
-		FRotator NuevaRotacion = DireccionHaciaJugador.Rotation();
-		SetActorRotation(NuevaRotacion);
-	}
+    APawn* PlayerPawn = UGameplayStatics::GetPlayerPawn(GetWorld(), 0);
+    if (PlayerPawn)
+    {
+        FVector Direccion = (PlayerPawn->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+        FVector Desplazamiento = Direccion * Velocidad * DeltaSeconds;
+        AddActorWorldOffset(Desplazamiento, true);
+        SetActorRotation(Direccion.Rotation());
+    }
 }
 
 void ANaveEnemigoAereo::Atacar()
 {
-
 }
 
-// 4. El puente que conecta los golpes recibidos con las matemáticas de tu chip
 float ANaveEnemigoAereo::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
+    if (ComponenteCombate)
+    {
+        DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
+    }
+    return DanioReal;
+}
 
-	// Le pasamos el golpe al chip de matemáticas
-	if (ComponenteCombate != nullptr)
-	{
-		DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
-	}
+void ANaveEnemigoAereo::Destroyed()
+{
+    if (ExplosionEffect)
+    {
+        UGameplayStatics::SpawnEmitterAtLocation(
+            GetWorld(),
+            ExplosionEffect,
+            GetActorLocation(),
+            GetActorRotation(),
+            FVector(ExplosionScale),
+            true
+        );
+    }
 
-	return DanioReal;
+    if (ExplosionSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, GetActorLocation());
+    }
+
+    Super::Destroyed();
 }

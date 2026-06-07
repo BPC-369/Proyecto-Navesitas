@@ -30,6 +30,5 @@ private:
     const int32 MAX_ESCOLTAS = 21;
     const int32 NAVES_POR_SPAWN = 3;
 
-    // Cache de la malla cargada en el constructor
     UStaticMesh* MallaCache;
 };

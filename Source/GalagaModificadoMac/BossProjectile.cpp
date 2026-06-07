@@ -46,7 +46,7 @@ ABossProjectile::ABossProjectile()
     ComponenteMovimiento->MaxSpeed = 1500.0f;
     ComponenteMovimiento->ProjectileGravityScale = 0.0f;
 
-    Dano = 20.0f;
+    Dano = 200.0f;
 }
 
 void ABossProjectile::BeginPlay()
