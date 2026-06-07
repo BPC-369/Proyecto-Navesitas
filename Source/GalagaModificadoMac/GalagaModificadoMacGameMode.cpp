@@ -12,6 +12,7 @@
 #include "NaveKamikase.h"
 #include "Nave_CMN.h"
 #include "RobotFrancotirador.h"
+#include "BossEstatico.h"
 
 // El include sagrado de tu Fachada unificada
 #include "FacadeGeneradorNiveles.h"
@@ -19,8 +20,7 @@
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
 	// 1 = espacio, 2 = cudad, 3 = atmosfera, 4 = nave nodriza
-	NivelAIniciar = 1;
-	//DefaultPawnClass = AGalagaModificadoMacPawn::StaticClass();
+	NivelAIniciar = 0;
 }
 
 void AGalagaModificadoMacGameMode::BeginPlay()
@@ -72,6 +72,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
 	int32 L_CantKamikase = EnemigosDelNivel.Contains(5) ? EnemigosDelNivel[5] : 0;
 	int32 L_CantCMN = EnemigosDelNivel.Contains(6) ? EnemigosDelNivel[6] : 0;
 	int32 L_CantFrancotirador = EnemigosDelNivel.Contains(7) ? EnemigosDelNivel[7] : 0;
+	int32 L_CantBossEstatico = EnemigosDelNivel.Contains(8) ? EnemigosDelNivel[8] : 0;
 
 	// 1. Spawn Nave Comando
 	for (int32 i = 0; i < L_CantComando; i++)
@@ -127,6 +128,13 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
 		FVector Pos = PosicionTerrestre + FVector(i * Separacion, 1500.0f, 0.0f);
 		ARobotFrancotirador* NuevoFrancotirador = Mundo->SpawnActor<ARobotFrancotirador>(ARobotFrancotirador::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
 		if (NuevoFrancotirador) ListaFrancotiradores.Add(NuevoFrancotirador);
+	}
+	// 8. BossEstatico
+	for (int32 i = 0; i < L_CantBossEstatico; i++)
+	{
+		FVector Pos = PosicionTerrestre + FVector(i * Separacion, 1500.0f, 0.0f);
+		ABossEstatico* NuevoBossEstatico = Mundo->SpawnActor<ABossEstatico>(ABossEstatico::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
+		if (NuevoBossEstatico) ListaBossEstaticos.Add(NuevoBossEstatico);
 	}
 
 	UE_LOG(LogTemp, Warning, TEXT("¡Ejército Personalizado Desplegado Exitosamente!"));
