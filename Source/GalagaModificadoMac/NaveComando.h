@@ -3,33 +3,33 @@
 #include "NaveEnemigoAereo.h"
 #include "NaveComando.generated.h"
 
-struct FDamageEvent;
-
 UCLASS()
 class GALAGAMODIFICADOMAC_API ANaveComando : public ANaveEnemigoAereo
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 
 public:
-	ANaveComando();
+    ANaveComando();
 
 protected:
-	virtual void BeginPlay() override;
-
-	// Firma exacta de la funcion de dano
-	//virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
+    virtual void BeginPlay() override;
+    virtual void Destroyed() override;
 
 public:
-	virtual void Atacar() override;
+    virtual void Atacar() override;
 
 private:
-	void GestionarEscoltas();
+    void GestionarEscoltas();
 
-	FTimerHandle TimerAtaque;
-	FTimerHandle TimerSpawn;
+    FTimerHandle TimerAtaque;
+    FTimerHandle TimerSpawn;
 
-	TArray<ANaveEnemigoAereo*> EscoltasActivas;
+    UPROPERTY()
+        TArray<ANaveEnemigoAereo*> EscoltasActivas;
 
-	const int32 MAX_ESCOLTAS = 21;
-	const int32 NAVES_POR_SPAWN = 3;
+    const int32 MAX_ESCOLTAS = 21;
+    const int32 NAVES_POR_SPAWN = 3;
+
+    // Cache de la malla cargada en el constructor
+    UStaticMesh* MallaCache;
 };
