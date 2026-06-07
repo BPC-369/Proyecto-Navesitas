@@ -13,16 +13,22 @@ ANaveComando::ANaveComando()
     Velocidad = 10.0f;
     FrecuenciaAtaque = 2.0f;
 
-    // Cargar la malla en el constructor (único lugar permitido)
+    // Malla
     static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow05.StarSparrow05'"));
     MallaCache = MeshComando.Succeeded() ? MeshComando.Object : nullptr;
+
+    // Configuración de explosión para la NaveComando (Cascade)
+    RutaExplosion = TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Big_B.P_Explosion_Big_B");
+    ExplosionScale = 3.0f;
+
+    // Si tuvieras un sonido, define la ruta aquí
+    // RutaSonidoExplosion = TEXT("/Game/Audio/ExplosionSound");
 }
 
 void ANaveComando::BeginPlay()
 {
-    Super::BeginPlay();
+    Super::BeginPlay();   // Aquí se carga la explosión desde RutaExplosion
 
-    // Configurar vida y facción
     if (ComponenteCombate)
     {
         ComponenteCombate->VidaMaxima = 2500.0f;
@@ -30,7 +36,6 @@ void ANaveComando::BeginPlay()
         ComponenteCombate->Faccion = FName("Enemigo");
     }
 
-    // Aplicar la malla cacheada
     if (MallaCache && MallaEnemiga)
     {
         MallaEnemiga->SetStaticMesh(MallaCache);
@@ -38,7 +43,6 @@ void ANaveComando::BeginPlay()
         MallaEnemiga->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
     }
 
-    // Iniciar temporizadores
     UWorld* World = GetWorld();
     if (World)
     {
@@ -47,6 +51,7 @@ void ANaveComando::BeginPlay()
     }
 }
 
+// El resto de funciones (Destroyed, Atacar, GestionarEscoltas) se quedan igual que antes.
 void ANaveComando::Destroyed()
 {
     UWorld* World = GetWorld();
@@ -72,7 +77,6 @@ void ANaveComando::Atacar()
 
     FVector Derecha = GetActorLocation() + (GetActorRightVector() * 450.0f);
     FVector Izquierda = GetActorLocation() - (GetActorRightVector() * 450.0f);
-
     World->SpawnActor<AProyectilJefe>(Derecha, GetActorRightVector().Rotation(), Params);
     World->SpawnActor<AProyectilJefe>(Izquierda, (-GetActorRightVector()).Rotation(), Params);
 }
@@ -83,7 +87,6 @@ void ANaveComando::GestionarEscoltas()
 
     UWorld* const World = GetWorld();
 
-    // Eliminar escoltas inválidas
     for (int32 i = EscoltasActivas.Num() - 1; i >= 0; i--)
     {
         ANaveEnemigoAereo* Escolta = EscoltasActivas[i];
@@ -93,7 +96,6 @@ void ANaveComando::GestionarEscoltas()
         }
     }
 
-    // Generar nuevas si hay hueco
     if (EscoltasActivas.Num() <= (MAX_ESCOLTAS - NAVES_POR_SPAWN))
     {
         for (int32 j = 0; j < NAVES_POR_SPAWN; j++)
@@ -103,8 +105,8 @@ void ANaveComando::GestionarEscoltas()
             FVector Offset = (GetActorRightVector() * ((j - 1) * 450.0f)) - (GetActorForwardVector() * 600.0f);
             FVector Pos = GetActorLocation() + Offset;
 
-            FabricaNaves::TipoNave TipoASpawnear = FMath::RandBool() ? FabricaNaves::COMUN : FabricaNaves::KAMIKASE;
-            ANaveEnemigoAereo* NuevaEscolta = FabricaNaves::CrearNave(TipoASpawnear, World, Pos, GetActorRotation());
+            FabricaNaves::TipoNave Tipo = FMath::RandBool() ? FabricaNaves::COMUN : FabricaNaves::KAMIKASE;
+            ANaveEnemigoAereo* NuevaEscolta = FabricaNaves::CrearNave(Tipo, World, Pos, GetActorRotation());
             if (NuevaEscolta)
             {
                 UComponenteCombate* CompEscolta = NuevaEscolta->FindComponentByClass<UComponenteCombate>();
@@ -113,10 +115,10 @@ void ANaveComando::GestionarEscoltas()
                     CompEscolta->Faccion = ComponenteCombate->Faccion;
                 }
 
-                UPrimitiveComponent* ColliderEscolta = NuevaEscolta->FindComponentByClass<UPrimitiveComponent>();
-                if (ColliderEscolta)
+                UPrimitiveComponent* Collider = NuevaEscolta->FindComponentByClass<UPrimitiveComponent>();
+                if (Collider)
                 {
-                    ColliderEscolta->IgnoreActorWhenMoving(this, true);
+                    Collider->IgnoreActorWhenMoving(this, true);
                 }
 
                 EscoltasActivas.Add(NuevaEscolta);

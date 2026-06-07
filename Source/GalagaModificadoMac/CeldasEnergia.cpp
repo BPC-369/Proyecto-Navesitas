@@ -53,7 +53,7 @@ void ACeldaEnergia::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
     // Rotar el pivote centrado → la malla gira sobre sí misma
-    PivoteCentrado->AddLocalRotation(FRotator(0.0f, 150.0f * DeltaTime, 0.0f));
+    PivoteCentrado->AddLocalRotation(FRotator(0.0f, 10.0f * DeltaTime, 0.0f));
 }
 
 void ACeldaEnergia::AsignarObservador(ICeldaObserver* Observador)

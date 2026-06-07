@@ -67,8 +67,8 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
 	ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
 
-	MoveSpeed = 1500.0f;
-	VelocidadOriginalNave = 1500.0f;
+	MoveSpeed = 1700.0f;
+	VelocidadOriginalNave = 1700.0f;
 
 	GunOffset = FVector(130.f, 0.f, 0.f);
 	FireRate = 0.1f;

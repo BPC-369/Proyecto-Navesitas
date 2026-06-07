@@ -19,7 +19,7 @@
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
-	NivelAIniciar = 1;
+	NivelAIniciar = 0;
 	DificultadActual = TEXT("Normal");
 
 	static ConstructorHelpers::FClassFinder<APawn> NaveBP(TEXT("/Game/Blueprints/BP_NaveJugador"));
@@ -95,9 +95,9 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
 	FActorSpawnParameters SpawnParams;
 	SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
 
-	FVector PosicionAerea(100.0f, 9000.0f, 1500.0f);
-	FVector PosicionTerrestre(0.0f, 0.0f, 120.0f);
-	float Separacion = 3000.0f;
+	FVector PosicionAerea(100.0f, 11000.0f, 1500.0f);
+	FVector PosicionTerrestre(0.0f, 0.0f, 1290.0f);
+	float Separacion = 7000.0f;
 
 	int32 L_CantComando = EnemigosDelNivel.Contains(1) ? EnemigosDelNivel[1] : 0;
 	int32 L_CantTorreta = EnemigosDelNivel.Contains(2) ? EnemigosDelNivel[2] : 0;
