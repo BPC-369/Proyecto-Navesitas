@@ -7,7 +7,7 @@
 
 AEscenarioNaveNodriza::AEscenarioNaveNodriza()
 {
-	// Valores por defecto seguros
+	// Valores por defecto(cambiable en el builder)
 	CantidadPasillos = 40;
 	CantidadTorretas = 10;
 }

@@ -7,16 +7,18 @@
 
 AEscenarioCiudad::AEscenarioCiudad()
 {
-	// Valores por defecto en caso de que no se use el Builder
+	// Valores por defecto (el builder se configra el spawn y cantidad)
 	CantidadEdificios = 100;
 	CantidadArboles = 50;
 	CantidadRocas = 20;
+
 }
 
 void AEscenarioCiudad::BeginPlay()
 {
 	Super::BeginPlay();
 }
+
 
 void AEscenarioCiudad::GenerarObstaculosProcedurales()
 {
@@ -32,9 +34,7 @@ void AEscenarioCiudad::GenerarObstaculosProcedurales()
 	// --- BUCLE 1: EDIFICIOS ---
 	for (int32 i = 0; i < CantidadEdificios; i++)
 	{
-		float RndX = FMath::FRandRange((-AnchoX / 2.0f) + MargenMuro, (AnchoX / 2.0f) - MargenMuro);
-		float RndY = FMath::FRandRange((-LargoY / 2.0f) + MargenMuro, (LargoY / 2.0f) - MargenMuro);
-		FVector PosicionSpawn(RndX, RndY, 0.0f);
+		FVector PosicionSpawn = ObtenerPosicionSpawnSegura(AnchoX, LargoY, MargenMuro, 0.0f);
 		FRotator RotacionAleatoria(0.0f, FMath::FRandRange(0.0f, 360.0f), 0.0f);
 
 		MiFabrica->CrearObstaculoEspecifico(Mundo, PosicionSpawn, RotacionAleatoria, TEXT("Edificio"));
@@ -43,9 +43,7 @@ void AEscenarioCiudad::GenerarObstaculosProcedurales()
 	// --- BUCLE 2: ÁRBOLES ---
 	for (int32 i = 0; i < CantidadArboles; i++)
 	{
-		float RndX = FMath::FRandRange((-AnchoX / 2.0f) + MargenMuro, (AnchoX / 2.0f) - MargenMuro);
-		float RndY = FMath::FRandRange((-LargoY / 2.0f) + MargenMuro, (LargoY / 2.0f) - MargenMuro);
-		FVector PosicionSpawn(RndX, RndY, 0.0f);
+		FVector PosicionSpawn = ObtenerPosicionSpawnSegura(AnchoX, LargoY, MargenMuro, 0.0f);
 		FRotator RotacionAleatoria(0.0f, FMath::FRandRange(0.0f, 360.0f), 0.0f);
 
 		MiFabrica->CrearObstaculoEspecifico(Mundo, PosicionSpawn, RotacionAleatoria, TEXT("Arbol"));
@@ -54,9 +52,7 @@ void AEscenarioCiudad::GenerarObstaculosProcedurales()
 	// --- BUCLE 3: ROCAS ---
 	for (int32 i = 0; i < CantidadRocas; i++)
 	{
-		float RndX = FMath::FRandRange((-AnchoX / 2.0f) + MargenMuro, (AnchoX / 2.0f) - MargenMuro);
-		float RndY = FMath::FRandRange((-LargoY / 2.0f) + MargenMuro, (LargoY / 2.0f) - MargenMuro);
-		FVector PosicionSpawn(RndX, RndY, 0.0f);
+		FVector PosicionSpawn = ObtenerPosicionSpawnSegura(AnchoX, LargoY, MargenMuro, 0.0f);
 		FRotator RotacionAleatoria(0.0f, FMath::FRandRange(0.0f, 360.0f), 0.0f);
 
 		MiFabrica->CrearObstaculoEspecifico(Mundo, PosicionSpawn, RotacionAleatoria, TEXT("Roca"));

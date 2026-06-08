@@ -37,8 +37,8 @@ void AEspacioEscenarioBuilder::ConstruirEsteticaCielo()
 			EscenarioEnConstruccion->DomoCielo->SetMaterial(0, MaterialEspacioAsset);
 		}
 
-		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(5000.0f));
-		EscenarioEnConstruccion->DomoCielo->SetRelativeLocation(FVector(0.0f));
+		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(4000.0f));
+		EscenarioEnConstruccion->DomoCielo->SetRelativeLocation(FVector(1000.0f));
 	}
 }
 
@@ -70,6 +70,5 @@ void AEspacioEscenarioBuilder::ConstruirFabricaDeEnemigos()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// Espacio reservado para las naves de tus panas
 	//EscenarioEnConstruccion->FabricaEnemigos = nullptr;
 }

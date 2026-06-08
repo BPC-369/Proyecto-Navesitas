@@ -30,7 +30,7 @@ ABossEstatico::ABossEstatico()
         UE_LOG(LogTemp, Error, TEXT("BossEstatico: No se encontró la malla del jefe en /Game/Geometry/jefeMalla/Meshy_AI_War_Machine_Chief_Ort_0603010709_texture"));
     }
 
-    MallaJefe->SetWorldScale3D(FVector(15.0f, 15.0f, 15.0f));
+    MallaJefe->SetWorldScale3D(FVector(30.0f, 30.0f, 30.0f));
 
     VidaMaxima = 200.0f;
     VidaJefe = VidaMaxima;

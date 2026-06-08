@@ -1,24 +1,26 @@
 ﻿#include "FacadeGeneradorNiveles.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
+#include "GestorBonificaciones.h"
 
-// INCLUDES DE TU ARQUITECTURA BUILDER (Respetando tus patrones)
+// INCLUDES DE LA ARQUITECTURA BUILDER 
 #include "EscenarioDirector.h"
 #include "EscenarioBase.h"
 
-// Tus 4 Builders Concretos
+// Builders Concretos
 #include "EspacioEscenarioBuilder.h"
 #include "CiudadEscenarioBuilder.h"
 #include "AtmosferaEscenarioBuilder.h"
 #include "NaveNodrizaEscenarioBuilder.h"
+#include "NaveNodrizaGefeBuilder.h"
 
-// Tus 4 Productos de Escenario
+// Productos de Escenario
 #include "EscenarioEspacio.h"
 #include "EscenarioCiudad.h"
 #include "EscenarioAtmosfera.h"
 #include "EscenarioNaveNodriza.h"
 
-// Clase base de obst�culos para la limpieza
+// Clase base de obstaculos para la limpieza
 #include "ObstaculoDestruido.h" 
 
 void UFacadeGeneradorNiveles::Inicializar(UWorld* WorldContext)
@@ -32,96 +34,105 @@ void UFacadeGeneradorNiveles::InicializarCampana()
 {
     CampanaNiveles.Empty();
     FConfiguracionNivel Nivel;
-
-	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 3000; Nivel.CantidadObstaculosB = 3000;
+    //editas el bioma del espacio
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 5000; Nivel.CantidadObstaculosB = 5000;
+    Nivel.TiempoLimite = 300;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
 	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
+    Nivel.EnemigosPorGenerar.Add(4, 1);
 	CampanaNiveles.Add(Nivel);
 
 	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+    Nivel.TiempoLimite = 300;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
 	Nivel.EnemigosPorGenerar.Add(1, 4);  // 4 Naves CMN
 	CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+    Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
-
-    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+    
+    //editas el bioma de la atmosfera
+    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 550; Nivel.CantidadObstaculosB = 40;
+    Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
-    Nivel.EnemigosPorGenerar.Add(1, 2);
+    Nivel.EnemigosPorGenerar.Add(4, 3);
+    Nivel.EnemigosPorGenerar.Add(6, 3);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 550; Nivel.CantidadObstaculosB = 15;
+    Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
     Nivel.EnemigosPorGenerar.Add(6, 4);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 550; Nivel.CantidadObstaculosB = 15;
+    Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
-
-    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+    //editas el bioma de la ciudad
+    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 100; Nivel.CantidadObstaculosB = 100;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
-    Nivel.EnemigosPorGenerar.Add(1, 2);
+    Nivel.EnemigosPorGenerar.Add(2, 10);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
     Nivel.EnemigosPorGenerar.Add(6, 4);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
-
-    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+    //editas el bioma de la navenodriza
+    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 50;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
     Nivel.EnemigosPorGenerar.Add(1, 2);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
     Nivel.EnemigosPorGenerar.Add(1, 1);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
-
-    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 3; Nivel.CantidadObstaculosB = 0;
+    //nivelgefefinal
+    Nivel.TipoAmbiente = 5; Nivel.CantidadObstaculosA = 50; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
     Nivel.EnemigosPorGenerar.Add(8, 1);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
     Nivel.EnemigosPorGenerar.Add(6, 4);
     CampanaNiveles.Add(Nivel);
 
-    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
+    Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
@@ -143,6 +154,12 @@ void UFacadeGeneradorNiveles::DestruirNivelAnterior()
 
     if (MundoActual)
     {
+        TArray<AActor*> GestoresViejos;
+        UGameplayStatics::GetAllActorsOfClass(MundoActual, AGestorBonificaciones::StaticClass(), GestoresViejos);
+        for (AActor* Gestor : GestoresViejos)
+        {
+            if (Gestor) Gestor->Destroy();
+        }
         TArray<AActor*> ObstaculosHuerfanos;
         UGameplayStatics::GetAllActorsOfClass(MundoActual, AObstaculoDestruido::StaticClass(), ObstaculosHuerfanos);
 
@@ -184,24 +201,34 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
         ClaseEscenarioProducto = AEscenarioEspacio::StaticClass();
         break;
     }
+    
     case 2:
-    {
-        ACiudadEscenarioBuilder* CiudadBuilder = MundoActual->SpawnActor<ACiudadEscenarioBuilder>(ACiudadEscenarioBuilder::StaticClass(), SpawnParams);
-        if (CiudadBuilder) BuilderElegido = CiudadBuilder;
-        ClaseEscenarioProducto = AEscenarioCiudad::StaticClass();
-        break;
-    }
-    case 3:
     {
         AAtmosferaEscenarioBuilder* AtmosferaBuilder = MundoActual->SpawnActor<AAtmosferaEscenarioBuilder>(AAtmosferaEscenarioBuilder::StaticClass(), SpawnParams);
         if (AtmosferaBuilder) BuilderElegido = AtmosferaBuilder;
         ClaseEscenarioProducto = AEscenarioAtmosfera::StaticClass();
         break;
     }
+    case 3:
+    {
+        ACiudadEscenarioBuilder* CiudadBuilder = MundoActual->SpawnActor<ACiudadEscenarioBuilder>(ACiudadEscenarioBuilder::StaticClass(), SpawnParams);
+        if (CiudadBuilder) BuilderElegido = CiudadBuilder;
+        ClaseEscenarioProducto = AEscenarioCiudad::StaticClass();
+        break;
+    }
     case 4:
     {
         ANaveNodrizaEscenarioBuilder* NodrizaBuilder = MundoActual->SpawnActor<ANaveNodrizaEscenarioBuilder>(ANaveNodrizaEscenarioBuilder::StaticClass(), SpawnParams);
         if (NodrizaBuilder) BuilderElegido = NodrizaBuilder;
+        ClaseEscenarioProducto = AEscenarioNaveNodriza::StaticClass();
+        break;
+    }
+    case 5:
+    {
+        ANaveNodrizaGefeBuilder* GefeBuilder = MundoActual->SpawnActor<ANaveNodrizaGefeBuilder>(ANaveNodrizaGefeBuilder::StaticClass(), SpawnParams);
+        if (GefeBuilder) BuilderElegido = GefeBuilder;
+
+        // Sigue usando el mismo producto (la base tecnológica de la nave), pero con tu constructor mutado
         ClaseEscenarioProducto = AEscenarioNaveNodriza::StaticClass();
         break;
     }
@@ -216,7 +243,18 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
         {
             EscenarioActivo->GenerarObstaculosProcedurales();
         }
+        if (MundoActual)
+        {
+            FActorSpawnParameters SpawnBonifParams;
+            SpawnBonifParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
+            MundoActual->SpawnActor<AGestorBonificaciones>(
+                AGestorBonificaciones::StaticClass(),
+                FVector::ZeroVector,
+                FRotator::ZeroRotator,
+                SpawnBonifParams
+                );
+        }
         BuilderElegido->Destroy();
         Director->Destroy();
 

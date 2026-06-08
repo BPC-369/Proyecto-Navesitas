@@ -15,7 +15,6 @@ AEscenarioBase* AEscenarioDirector::ConstruirEscenario(AEscenarioBuilder* Builde
 	BuilderElegido->InstanciarEscenario(ClaseEscenario);
 	BuilderElegido->ConstruirDimensiones();
 
-	// ¡NUEVO! Expande los muros físicos a la escala real del Builder (Ej: 100000)
 	if (BuilderElegido->GetEscenario())
 	{
 		BuilderElegido->GetEscenario()->AplicarEscalaFisica();

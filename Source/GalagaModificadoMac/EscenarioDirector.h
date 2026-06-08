@@ -15,6 +15,5 @@ class GALAGAMODIFICADOMAC_API AEscenarioDirector : public AActor
 public:
 	AEscenarioDirector();
 
-	// El algoritmo rígido que ejecuta la coreografía del patrón
 	AEscenarioBase* ConstruirEscenario(AEscenarioBuilder* BuilderElegido, TSubclassOf<AEscenarioBase> ClaseEscenario);
 };
