@@ -59,7 +59,7 @@ public:
 	virtual void OnConstruction(const FTransform& Transform) override;
 	virtual void GenerarObstaculosProcedurales();
 	void AplicarEscalaFisica();		
-
+	FVector ObtenerPosicionSpawnSegura(float Ancho, float Largo, float Margen, float AlturaZ);
 private:
 
 	void ConfigurarMallaPared(UStaticMeshComponent* Pared);

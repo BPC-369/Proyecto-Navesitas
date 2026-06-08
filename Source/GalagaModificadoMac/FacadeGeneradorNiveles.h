@@ -23,6 +23,8 @@ struct FConfiguracionNivel
 
 	UPROPERTY()
 		TMap<int32, int32> EnemigosPorGenerar;
+	UPROPERTY()
+		int32 TiempoLimite;
 };
 
 UCLASS()

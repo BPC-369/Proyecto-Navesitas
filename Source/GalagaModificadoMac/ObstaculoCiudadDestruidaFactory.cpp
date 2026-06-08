@@ -11,7 +11,7 @@ AObstaculoCiudadDestruidaFactory::AObstaculoCiudadDestruidaFactory()
 	// Cargar las mallas correspondientes
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> CuboMesh(TEXT("StaticMesh'/Game/Modelos/Edificios/Edificiodestruido/Meshy_AI_Rustbound_Citadel_0603023016_texture.Meshy_AI_Rustbound_Citadel_0603023016_texture'"));
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> EsferaMesh(TEXT("StaticMesh'/Game/Modelos/rocas/rock.rock'"));
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConoMesh(TEXT("StaticMesh'/Game/Modelos/arboles/fbx_game_export_Gum_Tree_Green2.fbx_game_export_Gum_Tree_Green2'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> ConoMesh(TEXT("StaticMesh'/Game/Modelos/Edificios/edificionuevo/Meshy_AI_Twin_Spire_Nexus_0603022815_texture.Meshy_AI_Twin_Spire_Nexus_0603022815_texture'"));
 
 	if (CuboMesh.Succeeded())   MallasEdificios.Add(CuboMesh.Object);
 	if (EsferaMesh.Succeeded())  MallasRocas.Add(EsferaMesh.Object);
@@ -65,14 +65,14 @@ AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculoEspecifico(
 				if (Tipo.Equals(TEXT("Edificio")))
 				{
 					// Edificios imponentes: 2.5x de ancho y altura aleatoria entre 4x y 7x
-					float AlturaEdificio = FMath::RandRange(4.0f, 7.0f);
-					MeshComp->SetWorldScale3D(FVector(2.5f, 2.5f, AlturaEdificio));
+					float AlturaEdificio = FMath::RandRange(150.5f, 150.8f);
+					MeshComp->SetWorldScale3D(FVector(40.5f, 40.8f, AlturaEdificio));
 				}
 				else if (Tipo.Equals(TEXT("Arbol")))
 				{
 					// Arbolitos con escala variada pero natural
-					float EscalaArbol = FMath::RandRange(0.8f, 1.6f);
-					MeshComp->SetWorldScale3D(FVector(EscalaArbol, EscalaArbol, EscalaArbol));
+					float AlturaEdificioArbol = FMath::RandRange(80.5f, 80.8f);
+					MeshComp->SetWorldScale3D(FVector(40.5f, 40.8f, AlturaEdificioArbol));
 				}
 				else if (Tipo.Equals(TEXT("Roca")))
 				{

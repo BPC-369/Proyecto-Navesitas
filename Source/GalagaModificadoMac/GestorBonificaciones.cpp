@@ -1,5 +1,7 @@
 #include "GestorBonificaciones.h"
 #include "Bonificacion.h"
+#include "EscenarioBase.h"
+#include "Kismet/GameplayStatics.h"
 
 AGestorBonificaciones::AGestorBonificaciones()
 {
@@ -20,16 +22,36 @@ void AGestorBonificaciones::BeginPlay()
 
 void AGestorBonificaciones::IntentarGenerarBonificacion()
 {
-	// Leemos la variable estática de la clase Bonificacion. ¡Puro C++!
 	if (ABonificacion::CantidadActivas < 3)
 	{
-		// Generamos coordenadas aleatorias
-		float RandX = FMath::RandRange(-LimiteX, LimiteX);
-		float RandY = FMath::RandRange(-LimiteY, LimiteY);
+		float RndX = 0.0f;
+		float RndY = 0.0f;
+		float AlturaZ = 1290.0f; // Altura estándar de juego
 
-		// OJO: Ajusta la Z para que aparezcan a la altura correcta de la nave o del robot
-		FVector PosicionSpawn = FVector(GetActorLocation().X + RandX, GetActorLocation().Y + RandY, GetActorLocation().Z);
+		AActor* EscenarioActor = UGameplayStatics::GetActorOfClass(GetWorld(), AEscenarioBase::StaticClass());
+		AEscenarioBase* EscenarioActual = Cast<AEscenarioBase>(EscenarioActor);
 
-		GetWorld()->SpawnActor<ABonificacion>(PosicionSpawn, FRotator::ZeroRotator);
+		if (EscenarioActual)
+		{
+			float RadioX = (EscenarioActual->AnchoX / 2.0f) - 1000.0f;
+			float RadioY = (EscenarioActual->LargoY / 2.0f) - 1000.0f;
+
+			RndX = FMath::FRandRange(-RadioX, RadioX);
+			RndY = FMath::FRandRange(-RadioY, RadioY);
+
+			AlturaZ = (EscenarioActual->AnchoX > 50000.0f) ? 100.0f : 1290.0f;
+		}
+		else
+		{
+			RndX = FMath::FRandRange(-LimiteX, LimiteX);
+			RndY = FMath::FRandRange(-LimiteY, LimiteY);
+		}
+
+		FVector PosicionSpawn = FVector(RndX, RndY, AlturaZ);
+
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		GetWorld()->SpawnActor<ABonificacion>(ABonificacion::StaticClass(), PosicionSpawn, FRotator::ZeroRotator, SpawnParams);
 	}
 }

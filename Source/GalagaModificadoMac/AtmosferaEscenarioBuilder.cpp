@@ -36,7 +36,7 @@ void AAtmosferaEscenarioBuilder::ConstruirEsteticaCielo()
 
 	if (EscenarioEnConstruccion->DomoCielo)
 	{
-		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(10000.0f, 10000.0f, 10000.0f));
+		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(4000.0f, 4000.0f, 4000.0f));
 		EscenarioEnConstruccion->DomoCielo->SetRelativeLocation(FVector(0.0f, 0.0f, 0.0f));
 	}
 }
@@ -44,10 +44,11 @@ void AAtmosferaEscenarioBuilder::ConstruirEsteticaCielo()
 void AAtmosferaEscenarioBuilder::ConstruirFisicasSuelo()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Desactivación del suelo migrado de tu constructor viejo
+
 	if (EscenarioEnConstruccion->Suelo)
 	{
-		EscenarioEnConstruccion->Suelo->SetVisibility(true);
+		EscenarioEnConstruccion->Suelo->SetVisibility(false); 
+		EscenarioEnConstruccion->Suelo->SetCollisionEnabled(ECollisionEnabled::NoCollision); 
 	}
 }
 
@@ -55,22 +56,23 @@ void AAtmosferaEscenarioBuilder::ConstruirFabricaDeObstaculos()
 {
 	if (!EscenarioEnConstruccion) return;
 
-	// Instanciamos dinámicamente tu fábrica específica de atmósfera en tiempo de ejecución
-	if (GetWorld())
+	UWorld* Mundo = GetWorld();
+	if (Mundo)
 	{
 		FActorSpawnParameters SpawnParams;
-		AObstaculoAtmosferaFactory* FabricaAtmosfera = GetWorld()->SpawnActor<AObstaculoAtmosferaFactory>(
-			AObstaculoAtmosferaFactory::StaticClass(), SpawnParams
-		);
 
-		// Se la inyectamos al escenario base
-		EscenarioEnConstruccion->FabricaObstaculos = FabricaAtmosfera;
+		AObstaculoAtmosferaFactory* FabricaAtmosfera = Mundo->SpawnActor<AObstaculoAtmosferaFactory>(AObstaculoAtmosferaFactory::StaticClass(), SpawnParams);
+
+		if (FabricaAtmosfera)
+		{
+			// Linyeccion de la factoría al escenario producto
+			EscenarioEnConstruccion->FabricaObstaculos = FabricaAtmosfera;
+		}
 	}
 }
 
 void AAtmosferaEscenarioBuilder::ConstruirFabricaDeEnemigos()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Reservado para tus compañeros
 	//EscenarioEnConstruccion->FabricaEnemigos = nullptr;
 }
