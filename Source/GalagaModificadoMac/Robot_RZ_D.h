@@ -22,4 +22,10 @@ protected:
 	FTimerHandle TimerDisparo;
 	bool bArmaCargada;
 	float DistanciaOptimaDeCombate;
+	bool bPuedeDisparar;
+	void ResetearDisparo();
+
+	// Variable para poner tu animación de disparo desde el editor
+	UPROPERTY(EditAnywhere, Category = "Animacion")
+	UAnimMontage* AnimacionDisparo;
 };

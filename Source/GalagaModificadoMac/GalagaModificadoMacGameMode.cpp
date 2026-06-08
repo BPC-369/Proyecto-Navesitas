@@ -72,7 +72,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
 	int32 L_CantKamikase = EnemigosDelNivel.Contains(5) ? EnemigosDelNivel[5] : 0;
 	int32 L_CantCMN = EnemigosDelNivel.Contains(6) ? EnemigosDelNivel[6] : 0;
 	int32 L_CantFrancotirador = EnemigosDelNivel.Contains(7) ? EnemigosDelNivel[7] : 0;
-	int32 L_CantBossEstatico = EnemigosDelNivel.Contains(8) ? EnemigosDelNivel[8] : 0;
+	int32 L_CantBossEstatico = EnemigosDelNivel.Contains(8) ? EnemigosDelNivel[8] : 0; 
 
 	// 1. Spawn Nave Comando
 	for (int32 i = 0; i < L_CantComando; i++)

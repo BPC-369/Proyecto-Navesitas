@@ -8,6 +8,7 @@
 
 class UStaticMesh;
 class UComponenteCombate;
+class USkeletalMeshComponent;
 
 // --- INICIO DEL PATRÓN STATE ---
 class AGalagaModificadoMacPawn;
@@ -19,6 +20,11 @@ public:
 
 	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) = 0;
 	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) = 0;
+
+	virtual void EjecutarAtaqueSecundario(AGalagaModificadoMacPawn* NaveContexto) = 0; // Click Derecho
+	virtual void EjecutarDisparoRobot(AGalagaModificadoMacPawn* NaveContexto) = 0; // Tecla G
+	virtual void ManejarSalto(AGalagaModificadoMacPawn* NaveContexto) = 0; // Barra Espaciadora
+	virtual void ActualizarRotacion(AGalagaModificadoMacPawn* NaveContexto) = 0; // Rotación con el Mouse
 };
 
 class FEstadoNaveVoladora : public IEstadoNave
@@ -26,6 +32,11 @@ class FEstadoNaveVoladora : public IEstadoNave
 public:
 	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) override;
 	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
+
+	virtual void EjecutarAtaqueSecundario(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void EjecutarDisparoRobot(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void ManejarSalto(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void ActualizarRotacion(AGalagaModificadoMacPawn* NaveContexto) override;
 };
 
 class FEstadoNaveRobot : public IEstadoNave
@@ -33,6 +44,11 @@ class FEstadoNaveRobot : public IEstadoNave
 public:
 	virtual void EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto) override;
 	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override;
+
+	virtual void EjecutarAtaqueSecundario(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void EjecutarDisparoRobot(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void ManejarSalto(AGalagaModificadoMacPawn* NaveContexto) override;
+	virtual void ActualizarRotacion(AGalagaModificadoMacPawn* NaveContexto) override;
 };
 // --- FIN DEL PATRÓN STATE ---
 
@@ -59,6 +75,19 @@ public:
 	}
 	virtual void EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection) override {
 		if (EstadoEnvuelto) EstadoEnvuelto->EjecutarAtaque(NaveContexto, FireDirection);
+	}
+
+	virtual void EjecutarAtaqueSecundario(AGalagaModificadoMacPawn* NaveContexto) override {
+		if (EstadoEnvuelto) EstadoEnvuelto->EjecutarAtaqueSecundario(NaveContexto);
+	}
+	virtual void EjecutarDisparoRobot(AGalagaModificadoMacPawn* NaveContexto) override {
+		if (EstadoEnvuelto) EstadoEnvuelto->EjecutarDisparoRobot(NaveContexto);
+	}
+	virtual void ManejarSalto(AGalagaModificadoMacPawn* NaveContexto) override {
+		if (EstadoEnvuelto) EstadoEnvuelto->ManejarSalto(NaveContexto);
+	}
+	virtual void ActualizarRotacion(AGalagaModificadoMacPawn* NaveContexto) override {
+		if (EstadoEnvuelto) EstadoEnvuelto->ActualizarRotacion(NaveContexto);
 	}
 };
 
@@ -150,6 +179,22 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combate")
 		UComponenteCombate* ComponenteCombate;
 
+	// 1. AÑADE LA MALLA ESQUELÉTICA Y LAS ANIMACIONES
+	USkeletalMeshComponent* RobotMeshComponent;
+	UAnimMontage* MontajeAtaqueNormal;
+	UAnimMontage* MontajeAtaqueRaro;
+	UAnimMontage* MontajeAtaqueCargado;
+	UAnimMontage* MontajeDisparoRobot;
+	UAnimMontage* MontajeDash;
+
+	// 2. VARIABLES PARA EL DASH Y ROTACIÓN
+	float TiempoUltimoSalto;
+	void EjecutarSalto();
+	void IniciarCorrer();
+	void DetenerCorrer();
+	void AtaqueSecundario(); // Click Derecho
+	void DisparoRobot();     // Tecla G
+
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
@@ -194,6 +239,7 @@ public:
 	FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
 	FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
 	FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+	FORCEINLINE class USkeletalMeshComponent* GetRobotMeshComponent() const { return RobotMeshComponent; }
 
 	void Transformar();
 	void ManejarMuerte();

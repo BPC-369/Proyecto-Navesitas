@@ -19,12 +19,15 @@ protected:
 	float DanioBase;
 	float RangoAtaque;
 	UStaticMeshComponent* MallaEnemiga;
-
-	// 2. Declaramos tu Chip de Combate
 	UComponenteCombate* ComponenteCombate;
-
+	FVector DireccionMerodeo;
+	float TiempoParaCambiarRuta;
+	bool bEstaAtacando;
+	void Merodear();
 public:
 	AEnemigoTerrestre();
+
+	bool bEstaSiendoCurado;
 
 	virtual void Tick(float DeltaTime) override;
 	virtual void Mover();

@@ -37,6 +37,9 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	ShipMeshComponent->SetupAttachment(GetCapsuleComponent());
 	ShipMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 
+	ShipMeshComponent->SetCollisionResponseToAllChannels(ECR_Block); // Choca con todo...
+	ShipMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore); // ...EXCEPTO con la cámara
+
 	// AQUI SE CORRIGE LA ROTACIÓN DE LA NAVE HACIA EL FRENTE
 	ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
 
@@ -44,15 +47,38 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow04.StarSparrow04'"));
 	if (FormaNave.Succeeded()) RopaNave = FormaNave.Object;
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCubo(TEXT("StaticMesh'/Game/Geometry/pawn/pawn09.pawn09'"));
-	if (FormaCubo.Succeeded()) RopaCubo = FormaCubo.Object;
+	RobotMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
+	RobotMeshComponent->SetupAttachment(GetCapsuleComponent());
+
+	// AQUI ESTÁ LA SOLUCIÓN AL TEMBLOR: Apagamos su colisión física para que no pelee con la cápsula
+	RobotMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
+	RobotMeshComponent->SetCollisionResponseToAllChannels(ECR_Block); // Choca con paredes y balas...
+	RobotMeshComponent->SetCollisionResponseToChannel(ECC_Camera, ECR_Ignore); // ...EXCEPTO con la cámara
+	RobotMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	RobotMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -90.0f)); // Lo bajamos un poco para que pise el suelo
+	RobotMeshComponent->SetVisibility(false); // Nace oculto porque empezamos como Nave
+
+	// 2. LE ASIGNAMOS TU MODELO 3D
+	static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaRobotAsset(TEXT("SkeletalMesh'/Game/Geometry/PawnRobot/MallaPawnRobot.MallaPawnRobot'"));
+	if (MallaRobotAsset.Succeeded())
+	{
+		RobotMeshComponent->SetSkeletalMesh(MallaRobotAsset.Object);
+	}
+
+	// 3. LE ASIGNAMOS TU ABP_PawnRobot PERFECTO
+	static ConstructorHelpers::FClassFinder<UAnimInstance> AnimRobotAsset(TEXT("AnimBlueprint'/Game/Blueprints/ABP_PawnRobot.ABP_PawnRobot_C'"));
+	if (AnimRobotAsset.Succeeded())
+	{
+		RobotMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+		RobotMeshComponent->SetAnimInstanceClass(AnimRobotAsset.Class);
+	}
 
 	static ConstructorHelpers::FObjectFinder<USoundBase> FireAudio(TEXT("/Game/TwinStick/Audio/TwinStickFire.TwinStickFire"));
 	FireSound = FireAudio.Object;
 
 	CameraBoom = CreateDefaultSubobject<USpringArmComponent>(TEXT("BrazoCamara3D"));
 	CameraBoom->SetupAttachment(RootComponent);
-	CameraBoom->SetUsingAbsoluteRotation(false);
+	CameraBoom->SetUsingAbsoluteRotation(true);
 
 	// AQUI SE ALEJA LA CÁMARA (1200.f en lugar de 250.f)
 	CameraBoom->TargetArmLength = 1200.f;
@@ -105,9 +131,24 @@ void AGalagaModificadoMacPawn::BeginPlay()
 	Super::BeginPlay();
 	if (ShipMeshComponent)
 	{
-		ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
-		// Nota: Si con -90.f la nave mira hacia ti en lugar de hacia adelante, cámbialo a 90.f positivo.
+		ShipMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		ShipMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
 	}
+
+	if (RobotMeshComponent)
+	{
+		RobotMeshComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+		RobotMeshComponent->SetCollisionProfileName(TEXT("NoCollision"));
+		RobotMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -60.0f)); // Forzar posición
+	}
+
+	// 2. APLICAR MODELOS
+	if (RopaNave != nullptr && ShipMeshComponent != nullptr)
+	{
+		ShipMeshComponent->SetStaticMesh(RopaNave);
+		ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+	}
+
 	ConvertirEnNave();
 }
 
@@ -126,6 +167,11 @@ void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* 
 	PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::EmpezarDisparo);
 	PlayerInputComponent->BindAction("Disparar", IE_Released, this, &AGalagaModificadoMacPawn::DetenerDisparo);
+	PlayerInputComponent->BindAction("BotonSaltar", IE_Pressed, this, &AGalagaModificadoMacPawn::EjecutarSalto);
+	PlayerInputComponent->BindAction("BotonCorrer", IE_Pressed, this, &AGalagaModificadoMacPawn::IniciarCorrer);
+	PlayerInputComponent->BindAction("BotonCorrer", IE_Released, this, &AGalagaModificadoMacPawn::DetenerCorrer);
+	PlayerInputComponent->BindAction("AtaqueSecundario", IE_Pressed, this, &AGalagaModificadoMacPawn::AtaqueSecundario);
+	PlayerInputComponent->BindAction("DisparoRobot", IE_Pressed, this, &AGalagaModificadoMacPawn::DisparoRobot);
 }
 
 void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
@@ -135,15 +181,6 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 	const float ForwardValue = GetInputAxisValue(MoveForwardBinding);
 	const float RightValue = GetInputAxisValue(MoveRightBinding);
 	const float UpValue = GetInputAxisValue(MoveUpBinding);
-
-	const float ValorMouseX = GetInputAxisValue("Turn");
-	const float ValorMouseY = GetInputAxisValue("LookUp");
-
-	if (CameraBoom != nullptr && (ValorMouseX != 0.0f || ValorMouseY != 0.0f))
-	{
-		FRotator RotacionNave = FRotator(ValorMouseY * 3.0f, ValorMouseX * 3.0f, 0.0f);
-		AddActorLocalRotation(RotacionNave);
-	}
 
 	AddMovementInput(GetActorForwardVector(), ForwardValue);
 	AddMovementInput(GetActorRightVector(), RightValue);
@@ -182,6 +219,11 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 			MoveSpeed = 300.0f;
 			GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
 		}
+	}
+
+	if (EstadoActual)
+	{
+		EstadoActual->ActualizarRotacion(this);
 	}
 }
 
@@ -259,19 +301,53 @@ void AGalagaModificadoMacPawn::CambiarEstado(IEstadoNave* NuevoEstado)
 
 void AGalagaModificadoMacPawn::ConvertirEnNave()
 {
-	if (RopaNave != nullptr) ShipMeshComponent->SetStaticMesh(RopaNave);
+	if (RobotMeshComponent) RobotMeshComponent->SetVisibility(false);
+
+	if (ShipMeshComponent)
+	{
+		ShipMeshComponent->SetVisibility(true);
+		// Forzamos a que el modelo se mantenga
+		if (RopaNave) ShipMeshComponent->SetStaticMesh(RopaNave);
+	}
+
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+	}
+
+	// --- MAGIA DE CÁMARA: MODO NAVE ---
+	if (CameraBoom)
+	{
+		// FALSE: La cámara se "pega" a la nave y gira junto con ella.
+		// Esto te permite hacer maniobras espaciales libremente.
+		CameraBoom->SetUsingAbsoluteRotation(false);
+
+		// Restauramos su ángulo original para volar
+		CameraBoom->SetRelativeRotation(FRotator(-15.f, 0.f, 0.f));
 	}
 }
 
 void AGalagaModificadoMacPawn::ConvertirEnRobot()
 {
-	if (RopaCubo != nullptr) ShipMeshComponent->SetStaticMesh(RopaCubo);
+	if (ShipMeshComponent) ShipMeshComponent->SetVisibility(false);
+	if (RobotMeshComponent) RobotMeshComponent->SetVisibility(true);
+
 	if (GetCharacterMovement())
 	{
 		GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	}
+
+	// --- MAGIA DE CÁMARA: MODO ROBOT ---
+	if (CameraBoom)
+	{
+		// TRUE: La cámara ignora los giros del robot. 
+		// Esto evita el "Tornado" porque el robot puede girar hacia el cursor del mouse 
+		// sin arrastrar a la cámara con él.
+		CameraBoom->SetUsingAbsoluteRotation(true);
+
+		// Acomodamos la cámara para darte una buena vista táctica "Top-Down / Isométrica"
+		// Le damos un ángulo un poco más picado hacia abajo (-30 grados) para ver bien a los enemigos
+		CameraBoom->SetWorldRotation(FRotator(-30.f, 0.f, 0.f));
 	}
 }
 
@@ -342,7 +418,29 @@ float AGalagaModificadoMacPawn::GetVidaMaxima() const
 	return 1.0f;
 }
 
-// PATRÓN DECORATOR
+void AGalagaModificadoMacPawn::EjecutarSalto() { 
+	if (EstadoActual) EstadoActual->ManejarSalto(this); 
+}
+
+void AGalagaModificadoMacPawn::AtaqueSecundario() { 
+	if (EstadoActual) EstadoActual->EjecutarAtaqueSecundario(this); 
+
+}
+
+void AGalagaModificadoMacPawn::DisparoRobot() { 
+	if (EstadoActual) EstadoActual->EjecutarDisparoRobot(this); 
+}
+
+// Para correr (Afecta a ambos modos)
+void AGalagaModificadoMacPawn::IniciarCorrer() { 
+	MoveSpeed = 800.0f; GetCharacterMovement()->MaxWalkSpeed = 800.0f; 
+}
+
+void AGalagaModificadoMacPawn::DetenerCorrer() { 
+	MoveSpeed = 300.0f; GetCharacterMovement()->MaxWalkSpeed = 300.0f; 
+}
+
+// PATRÓN STATE
 void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
 {
 	NaveContexto->ConvertirEnRobot();
@@ -370,63 +468,130 @@ void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto,
 	}
 }
 
-void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection	)
-{
-	UWorld* const World = NaveContexto->GetWorld();
-	if (World != nullptr)
+void FEstadoNaveVoladora::EjecutarAtaqueSecundario(AGalagaModificadoMacPawn* NaveContexto) {}
+void FEstadoNaveVoladora::EjecutarDisparoRobot(AGalagaModificadoMacPawn* NaveContexto) {}
+void FEstadoNaveVoladora::ManejarSalto(AGalagaModificadoMacPawn* NaveContexto) {}
+void FEstadoNaveVoladora::ActualizarRotacion(AGalagaModificadoMacPawn* NaveContexto) {
+	// La nave usa los ejes del mouse para hacer "Barrel Rolls" o girar como avión
+	const float ValorMouseX = NaveContexto->GetInputAxisValue("Turn");
+	const float ValorMouseY = NaveContexto->GetInputAxisValue("LookUp");
+
+	if (ValorMouseX != 0.0f || ValorMouseY != 0.0f)
 	{
-		// 1. Calculamos dónde ocurrirá el corte (150 unidades por delante del robot)
-		FVector PosicionGolpe = NaveContexto->GetActorLocation() + (FireDirection * 150.0f);
-		float RadioGolpe = 200.0f; // El alcance de tu espada/corte
-		float DanioBase = 25.0f;
+		FRotator RotacionNave = FRotator(ValorMouseY * 3.0f, ValorMouseX * 3.0f, 0.0f);
+		NaveContexto->AddActorLocalRotation(RotacionNave);
+	}
+}
 
-		// 2. Preparamos los filtros de colisión
-		TArray<FOverlapResult> EnemigosGolpeados;
-		FCollisionQueryParams ParametrosColision;
-		ParametrosColision.AddIgnoredActor(NaveContexto); // El robot es inmune a su propio corte
+// 1. ROTACIÓN HACIA EL MOUSE
+void FEstadoNaveRobot::ActualizarRotacion(AGalagaModificadoMacPawn* NaveContexto)
+{
+	// A. GIRAR SOLO LA CÁMARA (Independiente del robot)
+	const float ValorMouseX = NaveContexto->GetInputAxisValue("Turn");
+	const float ValorMouseY = NaveContexto->GetInputAxisValue("LookUp");
 
-		// 3. Creamos una esfera invisible que detecta todo lo que toca en ese milisegundo
-		bool bHuboGolpe = World->OverlapMultiByChannel(
-			EnemigosGolpeados,
-			PosicionGolpe,
-			FQuat::Identity,
-			ECollisionChannel::ECC_Pawn, // Solo buscamos otros Pawns/Personajes
-			FCollisionShape::MakeSphere(RadioGolpe),
-			ParametrosColision
-		);
+	if (NaveContexto->GetCameraBoom() != nullptr && (ValorMouseX != 0.0f || ValorMouseY != 0.0f))
+	{
+		// Giramos el "brazo" de la cámara. Puedes cambiar el 1.5f para que la cámara gire más rápido o más lento.
+		FRotator RotacionCamara = FRotator(ValorMouseY * 1.5f, ValorMouseX * 1.5f, 0.0f);
+		NaveContexto->GetCameraBoom()->AddLocalRotation(RotacionCamara);
+	}
 
-		// 4. Si la espada tocó algo, le restamos vida
-		if (bHuboGolpe)
+	// B. APUNTAR EL CUERPO DEL ROBOT AL MOUSE
+	APlayerController* PC = Cast<APlayerController>(NaveContexto->GetController());
+	if (PC)
+	{
+		FHitResult HitResult;
+		// Lanza un rayo desde el mouse al mundo 3D
+		if (PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
 		{
-			for (FOverlapResult& Overlap : EnemigosGolpeados)
-			{
-				AActor* ActorGolpeado = Overlap.GetActor();
-				if (ActorGolpeado != nullptr)
-				{
-					// Verificamos que sea un enemigo para no golpear aliados o powerups por error
-					UComponenteCombate* CompEnemigo = ActorGolpeado->FindComponentByClass<UComponenteCombate>();
-					if (CompEnemigo != nullptr && CompEnemigo->Faccion == FName("Enemigo"))
-					{
-						UGameplayStatics::ApplyDamage(
-							ActorGolpeado,
-							DanioBase * NaveContexto->MultiplicadorDanio,
-							NaveContexto->GetController(),
-							NaveContexto,
-							UDamageType::StaticClass()
-						);
-					}
-				}
-			}
-			GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("¡CORTE FRONTAL!"));
+			FVector DireccionMouse = HitResult.ImpactPoint - NaveContexto->GetActorLocation();
+			DireccionMouse.Z = 0.0f; // Evitamos que el robot mire hacia el cielo o se entierre
+			NaveContexto->SetActorRotation(DireccionMouse.Rotation());
 		}
 	}
 }
 
+// 2. ATAQUE NORMAL / RARO (Probabilidad)
+void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
+{
+	// Probabilidad del 20% de hacer el ataque raro
+	bool bEsAtaqueRaro = FMath::RandRange(1, 100) <= 20;
+
+	if (bEsAtaqueRaro && NaveContexto->MontajeAtaqueRaro)
+	{
+		NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueRaro);
+	}
+	else if (NaveContexto->MontajeAtaqueNormal)
+	{
+		NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueNormal);
+	}
+
+	// (Aquí mantienes tu código anterior de detectar colisiones con OverlapMultiByChannel para el daño)
+}
+
+// 3. ATAQUE CARGADO (Click Derecho)
+void FEstadoNaveRobot::EjecutarAtaqueSecundario(AGalagaModificadoMacPawn* NaveContexto)
+{
+	if (NaveContexto->MontajeAtaqueCargado)
+	{
+		NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueCargado);
+		// Lógica de daño expansivo o mayor daño aquí
+	}
+}
+
+// 4. DISPARO DEL ROBOT (Tecla G)
+void FEstadoNaveRobot::EjecutarDisparoRobot(AGalagaModificadoMacPawn* NaveContexto)
+{
+	if (NaveContexto->MontajeDisparoRobot)
+	{
+		NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeDisparoRobot);
+	}
+
+	// Disparamos el proyectil
+	UWorld* const World = NaveContexto->GetWorld();
+	if (World != nullptr)
+	{
+		FActorSpawnParameters SpawnParams;
+		SpawnParams.Owner = NaveContexto;
+		World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation() + (NaveContexto->GetActorForwardVector() * 100.f), NaveContexto->GetActorRotation(), SpawnParams);
+	}
+}
+
+// 5. SALTO Y DASH (Doble Espacio)
+void FEstadoNaveRobot::ManejarSalto(AGalagaModificadoMacPawn* NaveContexto)
+{
+	float TiempoActual = NaveContexto->GetWorld()->GetTimeSeconds();
+
+	// Si pulsó espacio hace menos de 0.4 segundos -> DASH
+	if (TiempoActual - NaveContexto->TiempoUltimoSalto <= 0.4f)
+	{
+		if (NaveContexto->MontajeDash)
+		{
+			NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeDash);
+		}
+		// Lo empujamos hacia adelante a gran velocidad
+		NaveContexto->LaunchCharacter(NaveContexto->GetActorForwardVector() * 2000.0f, true, true);
+	}
+	else
+	{
+		// Salto Normal
+		NaveContexto->Jump();
+		NaveContexto->TiempoUltimoSalto = TiempoActual;
+	}
+}
+
+// 6. TRANSFORMACIÓN (Apagar malla de nave, encender robot)
 void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
 {
-	NaveContexto->ConvertirEnNave();
+	NaveContexto->GetShipMeshComponent()->SetVisibility(true);
+	NaveContexto->GetRobotMeshComponent()->SetVisibility(false);
+	NaveContexto->GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+
 	NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
 }
+
+
 
 // PATRON DECORATOR
 FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
