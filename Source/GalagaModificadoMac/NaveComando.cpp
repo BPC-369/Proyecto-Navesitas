@@ -13,21 +13,17 @@ ANaveComando::ANaveComando()
     Velocidad = 10.0f;
     FrecuenciaAtaque = 2.0f;
 
-    // Malla
     static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshComando(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow05.StarSparrow05'"));
     MallaCache = MeshComando.Succeeded() ? MeshComando.Object : nullptr;
 
-    // Configuración de explosión para la NaveComando (Cascade)
-    RutaExplosion = TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Big_B.P_Explosion_Big_B");
+    RutaExplosion = TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Big_B");
     ExplosionScale = 3.0f;
-
-    // Si tuvieras un sonido, define la ruta aquí
-    // RutaSonidoExplosion = TEXT("/Game/Audio/ExplosionSound");
+    RutaSonidoExplosion = TEXT("/Game/music/explooosion");
 }
 
 void ANaveComando::BeginPlay()
 {
-    Super::BeginPlay();   // Aquí se carga la explosión desde RutaExplosion
+    Super::BeginPlay();
 
     if (ComponenteCombate)
     {
@@ -51,7 +47,12 @@ void ANaveComando::BeginPlay()
     }
 }
 
-// El resto de funciones (Destroyed, Atacar, GestionarEscoltas) se quedan igual que antes.
+void ANaveComando::Tick(float DeltaSeconds)
+{
+    Super::Tick(DeltaSeconds);
+    // La barra de vida se gestiona ahora desde el HUD del jugador
+}
+
 void ANaveComando::Destroyed()
 {
     UWorld* World = GetWorld();

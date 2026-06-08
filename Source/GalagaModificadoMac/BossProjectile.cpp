@@ -6,28 +6,27 @@
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/Character.h"
 #include "GameFramework/CharacterMovementComponent.h"
-#include "NiagaraSystem.h"                          // Tipo del asset
+#include "NiagaraSystem.h"
 #include "UObject/ConstructorHelpers.h"
+#include "TimerManager.h"
 
 ABossProjectile::ABossProjectile()
 {
     PrimaryActorTick.bCanEverTick = true;
-    InitialLifeSpan = 5.0f;
-    // Colisionador esférico invisible como raíz
+    InitialLifeSpan = 3.0f;                     // Vida máxima de 3 segundos
+
     Colisionador = CreateDefaultSubobject<USphereComponent>(TEXT("Colisionador"));
-    Colisionador->InitSphereRadius(25.0f);          // Ajusta el tamaño según tu VFX
+    Colisionador->InitSphereRadius(25.0f);
     RootComponent = Colisionador;
 
     Colisionador->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
     Colisionador->SetCollisionResponseToAllChannels(ECR_Overlap);
     Colisionador->OnComponentBeginOverlap.AddDynamic(this, &ABossProjectile::AlEntrarEnColision);
 
-    // Componente de VFX Niagara
     VFXNiagara = CreateDefaultSubobject<UNiagaraComponent>(TEXT("VFXNiagara"));
     VFXNiagara->SetupAttachment(RootComponent);
-    VFXNiagara->bAutoActivate = true;               // Se reproduce automáticamente al aparecer
+    VFXNiagara->bAutoActivate = true;
 
-    // Cargar el sistema Niagara desde la ruta que copiaste
     static ConstructorHelpers::FObjectFinder<UNiagaraSystem> NiagaraSystemFinder(
         TEXT("/Game/Basic_VFX/Niagara/NS_Basic_9.NS_Basic_9")
     );
@@ -35,18 +34,14 @@ ABossProjectile::ABossProjectile()
     {
         VFXNiagara->SetAsset(NiagaraSystemFinder.Object);
     }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("No se pudo cargar el Niagara System NS_Basic_9"));
-    }
 
-    // Movimiento
     ComponenteMovimiento = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ComponenteMovimiento"));
     ComponenteMovimiento->InitialSpeed = 1500.0f;
     ComponenteMovimiento->MaxSpeed = 1500.0f;
     ComponenteMovimiento->ProjectileGravityScale = 0.0f;
 
     Dano = 200.0f;
+    MaxTravelDistance = 5000.0f;                // Destruir si supera esta distancia
 }
 
 void ABossProjectile::BeginPlay()
@@ -54,7 +49,6 @@ void ABossProjectile::BeginPlay()
     Super::BeginPlay();
     SpawnLocation = GetActorLocation();
 
-    // Activar el Niagara explícitamente (por si acaso)
     if (VFXNiagara)
     {
         VFXNiagara->Activate(true);
@@ -65,12 +59,11 @@ void ABossProjectile::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    // Destrucción por distancia
-    /*
+    // Destruir si ha viajado más de MaxTravelDistance desde el origen
     if (FVector::DistSquared(GetActorLocation(), SpawnLocation) > FMath::Square(MaxTravelDistance))
     {
         Destroy();
-    }*/
+    }
 }
 
 void ABossProjectile::ConfigurarProyectil(float NuevaVelocidad, float NuevoDano, FVector Escala)
@@ -81,14 +74,7 @@ void ABossProjectile::ConfigurarProyectil(float NuevaVelocidad, float NuevoDano,
         ComponenteMovimiento->MaxSpeed = NuevaVelocidad;
     }
     Dano = NuevoDano;
-    SetActorScale3D(Escala);                        // Escala también afecta al VFX
-}
-
-void ABossProjectile::HabilitarEfectoOnda(float EscalaExtra, float bActivar)
-{
-    // Puedes modificar parámetros del Niagara aquí si lo deseas
-    // Por ahora solo ajustamos escala
-    SetActorScale3D(FVector(EscalaExtra, 0.5f, 0.5f));
+    SetActorScale3D(Escala);                    // Escala uniforme, sin deformar
 }
 
 void ABossProjectile::SetDireccion(FVector Direccion)
@@ -108,15 +94,33 @@ void ABossProjectile::AlEntrarEnColision(UPrimitiveComponent* OverlappedComponen
         OtherActor->IsA(ABossProjectile::StaticClass()) ||
         OtherActor->IsA(ACeldaEnergia::StaticClass())) return;
 
-    ACharacter* PlayerChar = Cast<ACharacter>(OtherActor);
-    if (PlayerChar)
+    if (bRalentiza)
     {
-        if (auto* MoveComp = PlayerChar->GetCharacterMovement())
-        {
-            MoveComp->MaxWalkSpeed *= 0.5f;
-        }
+        AplicarRalentizacion(OtherActor);
     }
 
     UGameplayStatics::ApplyDamage(OtherActor, Dano, GetInstigatorController(), this, UDamageType::StaticClass());
     Destroy();
+}
+
+void ABossProjectile::AplicarRalentizacion(AActor* Victima)
+{
+    ACharacter* PlayerChar = Cast<ACharacter>(Victima);
+    if (PlayerChar)
+    {
+        if (auto* MoveComp = PlayerChar->GetCharacterMovement())
+        {
+            float VelocidadOriginal = MoveComp->MaxWalkSpeed;
+            MoveComp->MaxWalkSpeed *= 0.4f;
+
+            FTimerHandle TimerHandle;
+            GetWorld()->GetTimerManager().SetTimer(TimerHandle, [MoveComp, VelocidadOriginal]()
+                {
+                    if (MoveComp)
+                    {
+                        MoveComp->MaxWalkSpeed = VelocidadOriginal;
+                    }
+                }, 2.0f, false);
+        }
+    }
 }

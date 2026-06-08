@@ -31,29 +31,21 @@ ANaveEnemigoAereo::ANaveEnemigoAereo()
     FrecuenciaAtaque = 2.0f;
     bTieneEscudo = false;
 
-    // --- Explosión por defecto (pequeña) para todas las naves ---
-    // Reemplaza esta ruta con la de tu explosión pequeña (usa Copy Reference)
-    RutaExplosion = TEXT("ParticleSystem'/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Side.P_Explosion_Side'");
-    ExplosionScale = 1.0f;
+    // Rutas por defecto para la explosión pequeña y su sonido
+    RutaExplosion = TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Side");
+    RutaSonidoExplosion = TEXT("/Game/StarterContent/Audio/explosionNave");
 
-    // Si quieres sonido para todas, define la ruta aquí
-    // RutaSonidoExplosion = TEXT("/Game/Audio/ExplosionSound");
+    ExplosionScale = 1.0f;
 }
 
 void ANaveEnemigoAereo::BeginPlay()
 {
     Super::BeginPlay();
 
-    // Cargar el efecto de explosión si hay ruta definida y aún no se ha cargado
     if (!ExplosionEffect && !RutaExplosion.IsEmpty())
-    {
         ExplosionEffect = LoadObject<UParticleSystem>(nullptr, *RutaExplosion);
-    }
-
     if (!ExplosionSound && !RutaSonidoExplosion.IsEmpty())
-    {
         ExplosionSound = LoadObject<USoundBase>(nullptr, *RutaSonidoExplosion);
-    }
 }
 
 void ANaveEnemigoAereo::Tick(float DeltaSeconds)
@@ -82,9 +74,7 @@ float ANaveEnemigoAereo::TakeDamage(float DamageAmount, FDamageEvent const& Dama
 {
     float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
     if (ComponenteCombate)
-    {
         DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
-    }
     return DanioReal;
 }
 
@@ -103,9 +93,7 @@ void ANaveEnemigoAereo::Destroyed()
     }
 
     if (ExplosionSound)
-    {
         UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, GetActorLocation());
-    }
 
     Super::Destroyed();
 }
