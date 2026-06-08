@@ -2,24 +2,24 @@
 
 
 #include "CiudadEscenarioBuilder.h"
-#include "ObstaculoCiudadDestruidaFactory.h" // Tu fábrica de edificios
-#include "EscenarioCiudad.h" // Tu clase de escenario urbano
+#include "ObstaculoCiudadDestruidaFactory.h" 
+#include "EscenarioCiudad.h"
 #include "Components/StaticMeshComponent.h"
 #include "UObject/ConstructorHelpers.h"
 
 void ACiudadEscenarioBuilder::ConstruirDimensiones()
 {
 	if (!EscenarioEnConstruccion) return;
-	EscenarioEnConstruccion->AnchoX = 20000.0f;
-	EscenarioEnConstruccion->LargoY = 20000.0f;
+	EscenarioEnConstruccion->AnchoX = 100000.0f;
+	EscenarioEnConstruccion->LargoY = 100000.0f;
 	EscenarioEnConstruccion->AltoZ = 5000.0f;
 
 	AEscenarioCiudad* Ciudad = Cast<AEscenarioCiudad>(EscenarioEnConstruccion);
 	if (Ciudad)
 	{
-		Ciudad->CantidadEdificios = CantidadA; // Usa el dato inyectado
-		Ciudad->CantidadArboles = CantidadB;   // Usa el dato inyectado
-		Ciudad->CantidadRocas = 15; // (Si quieres dejar la roca fija, está bien)
+		Ciudad->CantidadEdificios = CantidadA; 
+		Ciudad->CantidadArboles = CantidadB;   
+		Ciudad->CantidadRocas = 15; 
 	}
 }
 
@@ -43,11 +43,11 @@ void ACiudadEscenarioBuilder::ConstruirEsteticaCielo()
 void ACiudadEscenarioBuilder::ConstruirFisicasSuelo()
 {
 	if (!EscenarioEnConstruccion) return;
-	// En la ciudad el suelo SÍ se tiene que ver porque los edificios nacen de ahí
+
 	if (EscenarioEnConstruccion->Suelo)
 	{
 		EscenarioEnConstruccion->Suelo->SetVisibility(true);
-	}
+	} 
 }
 
 void ACiudadEscenarioBuilder::ConstruirFabricaDeObstaculos()
@@ -68,6 +68,5 @@ void ACiudadEscenarioBuilder::ConstruirFabricaDeObstaculos()
 void ACiudadEscenarioBuilder::ConstruirFabricaDeEnemigos()
 {
 	if (!EscenarioEnConstruccion) return;
-	// Espacio en blanco para la fábrica de naves urbanas de tus compañeros
 	//EscenarioEnConstruccion->FabricaEnemigos = nullptr;
 }

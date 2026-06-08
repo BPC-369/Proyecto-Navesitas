@@ -6,6 +6,7 @@
 
 class USphereComponent;
 class UStaticMeshComponent;
+class USkeletalMeshComponent; // ?? Declaración anticipada limpia
 
 UCLASS()
 class GALAGAMODIFICADOMAC_API ATorreta : public AEnemigoTerrestre
@@ -21,13 +22,15 @@ protected:
 	virtual void BeginPlay() override;
 
 public:
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Componentes")
+		USkeletalMeshComponent* MeshTorretaAnimada;
+
 	UStaticMeshComponent* MallaCanion;
 	USphereComponent* RangoDeteccion;
 	float CadenciaAtaque;
 	float DistanciaParaAcelerar;
 	FTimerHandle TimerDisparo;
 
-	// Añadir UPROPERTY lo inicializa en nullptr automáticamente y lo protege en memoria
 	UPROPERTY()
-	class APawn* JugadorObjetivo;
+		class APawn* JugadorObjetivo;
 };

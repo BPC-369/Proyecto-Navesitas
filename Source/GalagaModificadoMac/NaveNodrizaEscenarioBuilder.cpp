@@ -12,16 +12,15 @@ void ANaveNodrizaEscenarioBuilder::ConstruirDimensiones()
 	if (!EscenarioEnConstruccion) return;
 
 	// Dimensiones cerradas y alargadas simulando el interior de una nave de asalto
-	EscenarioEnConstruccion->AnchoX = 30000.0f;
-	EscenarioEnConstruccion->LargoY = 30000.0f;
-	EscenarioEnConstruccion->AltoZ = 4000.0f;
+	EscenarioEnConstruccion->AnchoX = 35000.0f;
+	EscenarioEnConstruccion->LargoY = 35000.0f;
+	EscenarioEnConstruccion->AltoZ = 45000.0f;
 
-	// Inyectamos las cantidades base por defecto usando el Cast
 	AEscenarioNaveNodriza* Nodriza = Cast<AEscenarioNaveNodriza>(EscenarioEnConstruccion);
 	if (Nodriza)
 	{
-		Nodriza->CantidadPasillos = 60;
-		Nodriza->CantidadTorretas = 15;
+		Nodriza->CantidadPasillos = CantidadA; // Ahora sí leerá tu '0' o lo que pongas en la Fachada
+		Nodriza->CantidadTorretas = CantidadB; // Mapeado al obstáculo B
 	}
 }
 
@@ -38,7 +37,7 @@ void ANaveNodrizaEscenarioBuilder::ConstruirEsteticaCielo()
 
 	if (EscenarioEnConstruccion->DomoCielo)
 	{
-		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(1500.0f));
+		EscenarioEnConstruccion->DomoCielo->SetRelativeScale3D(FVector(2000.0f));
 	}
 }
 
@@ -50,7 +49,7 @@ void ANaveNodrizaEscenarioBuilder::ConstruirFisicasSuelo()
 	{
 		EscenarioEnConstruccion->Suelo->SetVisibility(true);
 
-		UMaterialInterface* MaterialPisoAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/Nave/MPisoMetal.MPisoMetal'"));
+		UMaterialInterface* MaterialPisoAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/Edificios/lambert98.lambert98'"));
 
 		if (MaterialPisoAsset)
 		{
