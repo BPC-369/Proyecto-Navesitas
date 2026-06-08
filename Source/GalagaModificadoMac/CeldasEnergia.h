@@ -25,6 +25,10 @@ public:
 
     void AsignarObservador(ICeldaObserver* Observador);
 
+    // Getters para la vida (usados por el HUD)
+    float GetVida() const { return Vida; }
+    float GetVidaMaxima() const { return 400.0f; }  // Ajusta si cambiaste la vida máxima
+
 protected:
     virtual void BeginPlay() override;
 
@@ -33,7 +37,7 @@ private:
         class USceneComponent* RaizCelda;
 
     UPROPERTY()
-        class USceneComponent* PivoteCentrado;   // Pivote que situaremos en el centro exacto
+        class USceneComponent* PivoteCentrado;
 
     UPROPERTY()
         class UStaticMeshComponent* MallaCelda;

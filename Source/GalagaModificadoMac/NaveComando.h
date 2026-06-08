@@ -16,6 +16,7 @@ protected:
     virtual void Destroyed() override;
 
 public:
+    virtual void Tick(float DeltaSeconds) override;
     virtual void Atacar() override;
 
 private:

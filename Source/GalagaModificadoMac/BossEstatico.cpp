@@ -3,6 +3,14 @@
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
+#include "CeldasEnergia.h"
+#include "AttackStrategies.h"
+#include "GalagaModificadoMacGameMode.h"
+#include "Particles/ParticleSystem.h"
+#include "Particles/ParticleSystemComponent.h"
+#include "Components/AudioComponent.h"
+#include "Sound/SoundBase.h"
+#include "TimerManager.h"
 
 ABossEstatico::ABossEstatico()
 {
@@ -10,14 +18,13 @@ ABossEstatico::ABossEstatico()
 
     CapsulaColision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsulaColision"));
     RootComponent = CapsulaColision;
-    CapsulaColision->SetCapsuleSize(200.0f, 300.0f);
+    CapsulaColision->SetCapsuleSize(400.0f, 600.0f);
     CapsulaColision->SetCollisionProfileName(TEXT("Pawn"));
 
     MallaJefe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaJefe"));
     MallaJefe->SetupAttachment(RootComponent);
     MallaJefe->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
-    // Ruta exacta de la malla del jefe (copiada del Copy Reference)
     static ConstructorHelpers::FObjectFinder<UStaticMesh> MallaJefeNueva(
         TEXT("/Game/Geometry/jefeMalla/Meshy_AI_War_Machine_Chief_Ort_0603010709_texture.Meshy_AI_War_Machine_Chief_Ort_0603010709_texture")
     );
@@ -25,14 +32,10 @@ ABossEstatico::ABossEstatico()
     {
         MallaJefe->SetStaticMesh(MallaJefeNueva.Object);
     }
-    else
-    {
-        UE_LOG(LogTemp, Error, TEXT("BossEstatico: No se encontró la malla del jefe en /Game/Geometry/jefeMalla/Meshy_AI_War_Machine_Chief_Ort_0603010709_texture"));
-    }
 
     MallaJefe->SetWorldScale3D(FVector(30.0f, 30.0f, 30.0f));
 
-    VidaMaxima = 200.0f;
+    VidaMaxima = 2000.0f;
     VidaJefe = VidaMaxima;
     CeldasActivas = 0;
     bEscudoInmune = true;
@@ -44,6 +47,50 @@ ABossEstatico::ABossEstatico()
     TiempoAcumuladoCambio = 0.0f;
     MultiplicadorDano = 1.0f;
     MultiplicadorVelocidad = 1.0f;
+
+    AudioComponent = CreateDefaultSubobject<UAudioComponent>(TEXT("AudioComponent"));
+    AudioComponent->SetupAttachment(RootComponent);
+    AudioComponent->bAutoActivate = false;
+
+    EscudoPSC = CreateDefaultSubobject<UParticleSystemComponent>(TEXT("EscudoPSC"));
+    EscudoPSC->SetupAttachment(RootComponent);
+    EscudoPSC->bAutoActivate = false;
+    EscudoPSC->SetRelativeLocation(FVector::ZeroVector);
+
+    static ConstructorHelpers::FObjectFinder<UParticleSystem> EscudoAsset(
+        TEXT("/Game/FXVarietyPack/Particles/P_ky_magicCircle1")
+    );
+    if (EscudoAsset.Succeeded()) EscudoEffect = EscudoAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<UParticleSystem> ExplosionEscudoAsset(
+        TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Destruction/P_Destruction_Electric.P_Destruction_Electric")
+    );
+    if (ExplosionEscudoAsset.Succeeded()) ExplosionEscudo = ExplosionEscudoAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<UParticleSystem> ExplosionMuerteAsset(
+        TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Explosion/P_Explosion_Big_A")
+    );
+    if (ExplosionMuerteAsset.Succeeded()) ExplosionMuerte = ExplosionMuerteAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<USoundBase> RisaAsset(
+        TEXT("/Game/music/risaBoss.risaBoss")
+    );
+    if (RisaAsset.Succeeded()) SoundRisa = RisaAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<USoundBase> SonidoExplosionEscudoAsset(
+        TEXT("/Game/music/explooosion.explooosion")
+    );
+    if (SonidoExplosionEscudoAsset.Succeeded()) SoundExplosionEscudo = SonidoExplosionEscudoAsset.Object;
+
+    static ConstructorHelpers::FObjectFinder<USoundBase> SonidoExplosionMuerteAsset(
+        TEXT("/Game/music/xplosionBoss.xplosionBoss")
+    );
+    if (SonidoExplosionMuerteAsset.Succeeded()) SoundExplosionMuerte = SonidoExplosionMuerteAsset.Object;
+
+    IntervaloRisa = 15.0f;
+    EscudoEffectScale = 40.0f;
+    ExplosionEscudoScale = 2.0f;
+    ExplosionMuerteScale = 30.0f;   // Explosión gigante acorde al jefe
 }
 
 void ABossEstatico::BeginPlay()
@@ -57,21 +104,40 @@ void ABossEstatico::BeginPlay()
     for (AActor* ActorCelda : CeldasEnMapa)
     {
         ACeldaEnergia* Celda = Cast<ACeldaEnergia>(ActorCelda);
-        if (Celda) { Celda->AsignarObservador(this); }
+        if (Celda) Celda->AsignarObservador(this);
     }
 
+    if (EscudoPSC && EscudoEffect && CeldasActivas > 0)
+    {
+        EscudoPSC->SetTemplate(EscudoEffect);
+        EscudoPSC->SetWorldScale3D(FVector(EscudoEffectScale, EscudoEffectScale, EscudoEffectScale * 1.0f));
+        float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
+        float OffsetDesdeSuelo = -1850.0f;
+        EscudoPSC->SetRelativeLocation(FVector(0.0f, 0.0f, -HalfHeight + OffsetDesdeSuelo));
+        EscudoPSC->Activate(true);
+        EscudoPSC->SetCullDistance(0.0f);
+    }
+
+    StartLaugh();
     CambiarEstrategia(new FAtaqueParedStrategy());
 }
 
 void ABossEstatico::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
     Super::EndPlay(EndPlayReason);
-    if (EstrategiaActual) delete EstrategiaActual;
+    StopLaugh();
+    if (EstrategiaActual)
+    {
+        delete EstrategiaActual;
+        EstrategiaActual = nullptr;
+    }
 }
 
 void ABossEstatico::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    if (IsPendingKill()) return;
 
     if (bFuriaCeldas)
     {
@@ -83,10 +149,7 @@ void ABossEstatico::Tick(float DeltaTime)
         }
     }
 
-    if (EstrategiaActual)
-    {
-        EstrategiaActual->Ejecutar(this, DeltaTime);
-    }
+    if (EstrategiaActual) EstrategiaActual->Ejecutar(this, DeltaTime);
 }
 
 float ABossEstatico::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -114,19 +177,24 @@ void ABossEstatico::NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio)
 
     if (!bFuriaCeldas)
     {
-        if (CeldasActivas == 2)
-        {
-            CambiarEstrategia(new FAtaqueOndaStrategy());
-        }
-        else if (CeldasActivas == 1)
-        {
-            CambiarEstrategia(new FAtaqueLatigoStrategy());
-        }
+        if (CeldasActivas == 2) CambiarEstrategia(new FAtaqueOndaStrategy());
+        else if (CeldasActivas == 1) CambiarEstrategia(new FAtaqueLatigoStrategy());
     }
 
     if (CeldasActivas <= 0)
     {
         bEscudoInmune = false;
+        StopLaugh();
+
+        if (EscudoPSC && EscudoPSC->IsActive()) EscudoPSC->Deactivate();
+
+        if (ExplosionEscudo)
+            UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionEscudo, GetActorLocation(), GetActorRotation(), FVector(ExplosionEscudoScale), true);
+        if (SoundExplosionEscudo)
+            UGameplayStatics::PlaySoundAtLocation(this, SoundExplosionEscudo, GetActorLocation());
+
+        AGalagaModificadoMacGameMode* GM = Cast<AGalagaModificadoMacGameMode>(GetWorld()->GetAuthGameMode());
+        if (GM) GM->CambiarMusicaJefe(1);
 
         if (!bFuriaCeldas)
         {
@@ -153,4 +221,42 @@ void ABossEstatico::CambiarEstrategia(IAttackStrategy* NuevaEstrategia)
 {
     if (EstrategiaActual) delete EstrategiaActual;
     EstrategiaActual = NuevaEstrategia;
+}
+
+void ABossEstatico::Destroyed()
+{
+    // Explosión de muerte desde la base del jefe
+    if (ExplosionMuerte)
+    {
+        float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
+        FVector BaseLocation = GetActorLocation() - FVector(0.0f, 0.0f, HalfHeight);
+        UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionMuerte, BaseLocation, GetActorRotation(), FVector(ExplosionMuerteScale), true);
+    }
+    if (SoundExplosionMuerte)
+        UGameplayStatics::PlaySoundAtLocation(this, SoundExplosionMuerte, GetActorLocation());
+
+    Super::Destroyed();
+}
+
+// ========== RISA PERIÓDICA ==========
+void ABossEstatico::StartLaugh()
+{
+    if (!SoundRisa || IntervaloRisa <= 0.0f) return;
+    PlayLaugh();
+    GetWorld()->GetTimerManager().SetTimer(TimerHandle_Risa, this, &ABossEstatico::PlayLaugh, IntervaloRisa, true);
+}
+
+void ABossEstatico::PlayLaugh()
+{
+    if (SoundRisa && AudioComponent)
+    {
+        AudioComponent->SetSound(SoundRisa);
+        AudioComponent->Play();
+    }
+}
+
+void ABossEstatico::StopLaugh()
+{
+    if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
+    if (AudioComponent && AudioComponent->IsPlaying()) AudioComponent->Stop();
 }

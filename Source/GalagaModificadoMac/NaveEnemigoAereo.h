@@ -26,28 +26,25 @@ public:
     virtual void Atacar();
     virtual float TakeDamage(float DamageAmount, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, AActor* DamageCauser) override;
 
-    // BeginPlay se usará para cargar las explosiones
     virtual void BeginPlay() override;
     virtual void Destroyed() override;
+
+    // Getter para el componente de combate (usado por el HUD)
+    UComponenteCombate* GetComponenteCombate() const { return ComponenteCombate; }
 
 protected:
     UStaticMeshComponent* MallaEnemiga;
     UComponenteCombate* ComponenteCombate;
 
-    // Efecto de explosión (se carga en BeginPlay)
-    UPROPERTY()
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
         UParticleSystem* ExplosionEffect;
 
-    // Sonido opcional de explosión
-    UPROPERTY()
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
         USoundBase* ExplosionSound;
 
-    // Escala de la explosión
-    float ExplosionScale = 1.0f;
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
+        float ExplosionScale = 1.0f;
 
-    // Ruta del efecto de explosión (se define en cada constructor)
     FString RutaExplosion;
-
-    // Ruta del sonido de explosión (opcional)
     FString RutaSonidoExplosion;
 };

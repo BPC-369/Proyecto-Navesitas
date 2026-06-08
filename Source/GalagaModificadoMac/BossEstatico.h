@@ -20,16 +20,19 @@ public:
     virtual void NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio) override;
     void CambiarEstrategia(IAttackStrategy* NuevaEstrategia);
 
-    // Función inline para satisfacer al sistema de estados (evita LNK2019)
     void EjecutarAtaqueEstrategico(float DeltaTime = 0.0f) {}
 
-    // Multiplicadores para los ataques (furia)
     float GetMultiplicadorDano() const { return MultiplicadorDano; }
     float GetMultiplicadorVelocidad() const { return MultiplicadorVelocidad; }
+
+    // Vida del jefe (accesible desde el HUD)
+    float VidaMaxima;
+    float VidaJefe;
 
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+    virtual void Destroyed() override;
 
 private:
     UPROPERTY(VisibleAnywhere)
@@ -40,19 +43,53 @@ private:
 
     IAttackStrategy* EstrategiaActual;
 
-    float VidaMaxima;
-    float VidaJefe;
     int32 CeldasActivas;
     bool bEscudoInmune;
 
-    // Furia progresiva
-    bool bFuriaCeldas;            // Activada al destruir todas las celdas
-    bool bFuriaVida;              // Activada al bajar del 50% de vida
-    float IntervaloCambio;        // Tiempo entre cambios de ataque
-    float TiempoAcumuladoCambio;  // Contador para el cambio
+    bool bFuriaCeldas;
+    bool bFuriaVida;
+    float IntervaloCambio;
+    float TiempoAcumuladoCambio;
 
     float MultiplicadorDano;
     float MultiplicadorVelocidad;
 
     void SeleccionarAtaqueAleatorioFuria();
+
+    // ========== EFECTOS VISUALES ==========
+    UPROPERTY()
+        class UParticleSystemComponent* EscudoPSC;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
+        class UParticleSystem* EscudoEffect;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
+        class UParticleSystem* ExplosionEscudo;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
+        class UParticleSystem* ExplosionMuerte;
+
+    float EscudoEffectScale = 40.0f;
+    float ExplosionEscudoScale = 2.0f;
+    float ExplosionMuerteScale = 3.0f;
+
+    // ========== SONIDOS ==========
+    UPROPERTY()
+        class UAudioComponent* AudioComponent;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Sonidos")
+        class USoundBase* SoundRisa;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Sonidos")
+        class USoundBase* SoundExplosionEscudo;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Sonidos")
+        class USoundBase* SoundExplosionMuerte;
+
+    FTimerHandle TimerHandle_Risa;
+    float IntervaloRisa = 15.0f;
+
+    void StartLaugh();
+    void PlayLaugh();
+    void StopLaugh();
 };
