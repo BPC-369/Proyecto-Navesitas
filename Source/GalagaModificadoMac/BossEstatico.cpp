@@ -21,7 +21,7 @@ ABossEstatico::ABossEstatico()
 
     CapsulaColision = CreateDefaultSubobject<UCapsuleComponent>(TEXT("CapsulaColision"));
     RootComponent = CapsulaColision;
-    CapsulaColision->SetCapsuleSize(400.0f, 600.0f);
+    CapsulaColision->SetCapsuleSize(800.0f, 1200.0f);
     CapsulaColision->SetCollisionProfileName(TEXT("Pawn"));
 
     MallaJefe = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaJefe"));
@@ -38,7 +38,7 @@ ABossEstatico::ABossEstatico()
 
     MallaJefe->SetWorldScale3D(FVector(30.0f, 30.0f, 30.0f));
 
-    VidaMaxima = 2000.0f;
+    VidaMaxima = 8000.0f;
     VidaJefe = VidaMaxima;
     CeldasActivas = 0;
     bEscudoInmune = true;

@@ -7,7 +7,7 @@
 #include "Engine/StaticMesh.h"
 #include "Kismet/GameplayStatics.h"
 
-AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile() 
+AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 {
 	InitialLifeSpan = 8.0f; // despues de 3 segs la bala se destruye si no ha chocado con nada
 	DanoProyectil = 25.0f; // El daño que tendra la bala 
@@ -15,7 +15,7 @@ AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 
 	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMesh0"));
 	ProjectileMesh->SetStaticMesh(ProjectileMeshAsset.Object); // aplicamos la malla a la bala
-	ProjectileMesh->SetupAttachment(RootComponent); 
+	ProjectileMesh->SetupAttachment(RootComponent);
 	ProjectileMesh->BodyInstance.SetCollisionProfileName("Projectile"); // hacemos que la bala pueda chocar con todo menos el que la dispara
 	ProjectileMesh->OnComponentHit.AddDynamic(this, &AGalagaModificadoMacProjectile::OnHit); // cada vez que la bala choque con algo se llamara a la funcion OnHit para aplicar dano y fisicas
 	RootComponent = ProjectileMesh;
@@ -27,6 +27,15 @@ AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 	ProjectileMovement->bRotationFollowsVelocity = true; // La bala se orienta hacia la dirección a la que va
 	ProjectileMovement->bShouldBounce = false; // La bala no rebota al chocar con algo
 	ProjectileMovement->ProjectileGravityScale = 0.f; // No gravity
+}
+
+void AGalagaModificadoMacProjectile::Init(FVector LaunchDirection)
+{
+	// Fijamos la velocidad para que vuele recto exactamente hacia LaunchDirection
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->Velocity = LaunchDirection.GetSafeNormal() * ProjectileMovement->InitialSpeed;
+	}
 }
 
 void AGalagaModificadoMacProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)

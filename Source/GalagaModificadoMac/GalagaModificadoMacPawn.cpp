@@ -43,7 +43,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     RopaNave = nullptr;
     RopaCubo = nullptr;
 
-    GetCapsuleComponent()->InitCapsuleSize(60.f, 60.f);
+    GetCapsuleComponent()->InitCapsuleSize(100.f, 100.f);
     GetCapsuleComponent()->SetCollisionProfileName(UCollisionProfile::Pawn_ProfileName);
 
     ShipMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ShipMesh"));
@@ -687,7 +687,7 @@ void AGalagaModificadoMacPawn::DisparoEspecial()
 }
 // ===========================
 
-// --- PATRÓN STATE ---
+// --- PATRÓN STATE (con Init corregido) ---
 void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
 {
     NaveContexto->ConvertirEnRobot();
@@ -710,8 +710,11 @@ void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto,
         FVector SpawnLocationIzquierdo = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetIzquierdo);
         FVector SpawnLocationDerecho = NaveContexto->GetActorLocation() + FireRotation.RotateVector(OffsetDerecho);
 
-        World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
-        World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+        AGalagaModificadoMacProjectile* ProyectilIzq = World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationIzquierdo, FireRotation, SpawnParams);
+        AGalagaModificadoMacProjectile* ProyectilDer = World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocationDerecho, FireRotation, SpawnParams);
+
+        if (ProyectilIzq) ProyectilIzq->Init(FireDirection);
+        if (ProyectilDer) ProyectilDer->Init(FireDirection);
     }
 }
 
@@ -790,7 +793,7 @@ void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveCont
     NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
 }
 
-// --- PATRÓN DECORATOR ---
+// --- PATRÓN DECORATOR (con Init corregido) ---
 FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
     if (Contexto && Contexto->ComponenteCombate) {
@@ -816,13 +819,22 @@ void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCont
             FVector Der1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep1, NaveContexto->GunOffset.Z));
             FVector Izq2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep2, NaveContexto->GunOffset.Z));
             FVector Der2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep2, NaveContexto->GunOffset.Z));
-            World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
-            World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
-            World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
-            World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
+
+            AGalagaModificadoMacProjectile* P1 = World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
+            AGalagaModificadoMacProjectile* P2 = World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
+            AGalagaModificadoMacProjectile* P3 = World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
+            AGalagaModificadoMacProjectile* P4 = World->SpawnActor<AGalagaModificadoMacProjectile>(Der2, FireRotation, SpawnParams);
+
+            if (P1) P1->Init(FireDirection);
+            if (P2) P2->Init(FireDirection);
+            if (P3) P3->Init(FireDirection);
+            if (P4) P4->Init(FireDirection);
         }
     }
-    else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+    else
+    {
+        FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+    }
 }
 
 FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->BombasRacimoRestantes += 6; }
@@ -837,10 +849,19 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
             const FRotator FireRotation = FireDirection.Rotation();
             FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             NaveContexto->BombasRacimoRestantes--;
-            for (int i = 0; i < 8; i++) { FRotator RacimoRot = FireRotation; RacimoRot.Yaw += (45.0f * i); World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams); }
+            for (int i = 0; i < 8; i++)
+            {
+                FRotator RacimoRot = FireRotation;
+                RacimoRot.Yaw += (45.0f * i);
+                AGalagaModificadoMacProjectile* Proy = World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
+                if (Proy) Proy->Init(FireDirection); // todos hacia la dirección principal
+            }
         }
     }
-    else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+    else
+    {
+        FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+    }
 }
 
 FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
@@ -867,10 +888,14 @@ void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCon
             const FRotator FireRotation = FireDirection.Rotation();
             FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
-            World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+            AGalagaModificadoMacProjectile* Proy = World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+            if (Proy) Proy->Init(FireDirection);
         }
     }
-    else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+    else
+    {
+        FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
+    }
 }
 
 FDecoradorRecuperacionRobot::FDecoradorRecuperacionRobot(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
