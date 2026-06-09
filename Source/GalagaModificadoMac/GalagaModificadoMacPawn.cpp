@@ -107,7 +107,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     bUseControllerRotationYaw = false;
     bUseControllerRotationRoll = false;
 
-    EstadoActual = new FEstadoNaveVoladora();
+    EstadoActual = nullptr;
 
     if (ComponenteCombate != nullptr)
     {
@@ -139,6 +139,9 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 void AGalagaModificadoMacPawn::BeginPlay()
 {
     Super::BeginPlay();
+
+    EstadoActual = new FEstadoNaveVoladora();
+
     if (ShipMeshComponent)
         ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
     ConvertirEnNave();
@@ -162,6 +165,18 @@ void AGalagaModificadoMacPawn::BeginPlay()
     }
 }
 
+void AGalagaModificadoMacPawn::Destroyed()
+{
+    Super::Destroyed();
+
+    // Destruimos el estado actual de la memoria cuando el Pawn se destruye
+    if (EstadoActual != nullptr)
+    {
+        delete EstadoActual;
+        EstadoActual = nullptr;
+    }
+}
+
 void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent)
 {
     check(PlayerInputComponent);
@@ -178,6 +193,12 @@ void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* 
     PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::EmpezarDisparo);
     PlayerInputComponent->BindAction("Disparar", IE_Released, this, &AGalagaModificadoMacPawn::DetenerDisparo);
     PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &AGalagaModificadoMacPawn::OnPauseButtonPressed);
+    
+    PlayerInputComponent->BindAction("AtaqueCargado", IE_Pressed, this, &AGalagaModificadoMacPawn::AtaqueSecundario);
+    PlayerInputComponent->BindAction("Correr", IE_Pressed, this, &AGalagaModificadoMacPawn::IniciarCorrer);
+    PlayerInputComponent->BindAction("Correr", IE_Released, this, &AGalagaModificadoMacPawn::DetenerCorrer);
+    PlayerInputComponent->BindAction("DisparoQ", IE_Pressed, this, &AGalagaModificadoMacPawn::DisparoEspecial);
+    PlayerInputComponent->BindAction("Saltar", IE_Pressed, this, &AGalagaModificadoMacPawn::EjecutarSalto);
 }
 
 void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
@@ -358,7 +379,7 @@ void AGalagaModificadoMacPawn::ConvertirEnRobot()
     // 3. CÁMARA DE ROBOT (Primera Persona)
     if (CameraBoom)
     {
-        CameraBoom->TargetArmLength = 100.f; // Pegamos la cámara completamente al cuerpo (0 de distancia)
+        CameraBoom->TargetArmLength = 400.f; // Pegamos la cámara completamente al cuerpo (0 de distancia)
 
         CameraBoom->SocketOffset = FVector::ZeroVector;
         // Movemos la cámara a la altura de la cabeza (Z=60) 
@@ -525,7 +546,107 @@ void AGalagaModificadoMacPawn::ReturnToMainMenuFromPause()
 }
 
 void AGalagaModificadoMacPawn::PauseResumeGame() { ResumeGame(); }
+
 void AGalagaModificadoMacPawn::PauseReturnToMainMenu() { ReturnToMainMenuFromPause(); }
+
+// --- LÓGICA DE MOVIMIENTO ---
+void AGalagaModificadoMacPawn::IniciarCorrer()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking) {
+        MoveSpeed = 600.0f; // Duplicamos velocidad base
+        GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+    }
+}
+
+void AGalagaModificadoMacPawn::DetenerCorrer()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking) {
+        MoveSpeed = 300.0f; // Volvemos a caminar normal
+        GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+    }
+}
+
+void AGalagaModificadoMacPawn::EjecutarSalto()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking) {
+        Jump(); // ACharacter ya tiene la lógica de físicas para saltar
+    }
+}
+
+// --- LÓGICA DE ATAQUES EXTRA ---
+void AGalagaModificadoMacPawn::AtaqueSecundario()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking && RobotMeshComponent && MontajeAtaqueCargado)
+    {
+        // 1. Reproducir la animación
+        RobotMeshComponent->GetAnimInstance()->Montage_Play(MontajeAtaqueCargado);
+
+        // 2. Lógica de Daño en Área (Una gran explosión circular alrededor del robot)
+        UWorld* const World = GetWorld();
+        if (World != nullptr)
+        {
+            FVector CentroExplosion = GetActorLocation(); // El centro eres tú
+            float RadioExplosion = 600.0f; // Un área mucho más grande
+            float DanioCargado = 75.0f; // Triple daño que el ataque normal
+
+            TArray<FOverlapResult> EnemigosGolpeados;
+            FCollisionQueryParams ParametrosColision;
+            ParametrosColision.AddIgnoredActor(this);
+
+            bool bHuboGolpe = World->OverlapMultiByChannel(
+                EnemigosGolpeados, CentroExplosion, FQuat::Identity,
+                ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(RadioExplosion), ParametrosColision
+            );
+
+            if (bHuboGolpe)
+            {
+                for (FOverlapResult& Overlap : EnemigosGolpeados)
+                {
+                    AActor* ActorGolpeado = Overlap.GetActor();
+                    if (ActorGolpeado != nullptr)
+                    {
+                        UComponenteCombate* CompEnemigo = ActorGolpeado->FindComponentByClass<UComponenteCombate>();
+                        if (CompEnemigo != nullptr && CompEnemigo->Faccion == FName("Enemigo"))
+                        {
+                            UGameplayStatics::ApplyDamage(ActorGolpeado, DanioCargado * MultiplicadorDanio, GetController(), this, UDamageType::StaticClass());
+                        }
+                    }
+                }
+            }
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, TEXT("¡EXPLOSIÓN CARGADA!"));
+        }
+    }
+}
+
+void AGalagaModificadoMacPawn::DisparoEspecial()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking && RobotMeshComponent && MontajeDisparoQ)
+    {
+        // 1. Reproducir la animación
+        RobotMeshComponent->GetAnimInstance()->Montage_Play(MontajeDisparoQ);
+
+        // 2. Lógica de Disparo (Igual que la nave)
+        UWorld* const World = GetWorld();
+        if (World != nullptr)
+        {
+            // Disparamos hacia donde está mirando el robot
+            FRotator FireRotation = GetActorRotation();
+
+            // Empujamos el proyectil un poco hacia adelante (100 unidades) para que no nazca dentro de ti
+            FVector SpawnLocation = GetActorLocation() + FireRotation.RotateVector(FVector(100.f, 0.f, 0.f));
+
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.Owner = this;
+
+            // Generar el proyectil
+            World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+
+            if (FireSound != nullptr) {
+                UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+            }
+        }
+    }
+}
 // ===========================
 
 // --- PATRÓN STATE ---
@@ -558,6 +679,28 @@ void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto,
 
 void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
+    // =========================================================================
+    // PARTE 1: LAS ANIMACIONES (El 20% de probabilidad)
+    // =========================================================================
+    if (NaveContexto->GetRobotMeshComponent() && NaveContexto->GetRobotMeshComponent()->GetAnimInstance())
+    {
+        // Tiramos los dados: del 1 al 100. Si cae 20 o menos, es ataque raro.
+        bool bEsAtaqueRaro = FMath::RandRange(1, 100) <= 20;
+
+        if (bEsAtaqueRaro && NaveContexto->MontajeAtaqueRaro)
+        {
+            NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueRaro);
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Purple, TEXT("¡ATAQUE RARO ACTIVADO!"));
+        }
+        else if (NaveContexto->MontajeAtaqueNormal)
+        {
+            NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueNormal);
+        }
+    }
+
+    // =========================================================================
+    // PARTE 2: EL DAÑO (Tu código exacto de la esfera de colisión)
+    // =========================================================================
     UWorld* const World = NaveContexto->GetWorld();
     if (World != nullptr)
     {
@@ -567,7 +710,7 @@ void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FV
 
         TArray<FOverlapResult> EnemigosGolpeados;
         FCollisionQueryParams ParametrosColision;
-        ParametrosColision.AddIgnoredActor(NaveContexto);
+        ParametrosColision.AddIgnoredActor(NaveContexto); // No nos pegamos a nosotros mismos
 
         bool bHuboGolpe = World->OverlapMultiByChannel(
             EnemigosGolpeados,
