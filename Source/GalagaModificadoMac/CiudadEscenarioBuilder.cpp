@@ -47,8 +47,16 @@ void ACiudadEscenarioBuilder::ConstruirFisicasSuelo()
 	if (EscenarioEnConstruccion->Suelo)
 	{
 		EscenarioEnConstruccion->Suelo->SetVisibility(true);
-	} 
-}
+		
+			UMaterialInterface* MaterialPisoAsset = LoadObject<UMaterialInterface>(nullptr, TEXT("Material'/Game/Modelos/ciudaddestruida/suelo/Material_004.Material_004'"));
+
+			if (MaterialPisoAsset)
+			{
+				EscenarioEnConstruccion->Suelo->SetMaterial(0, MaterialPisoAsset);
+			}
+	}
+} 
+
 
 void ACiudadEscenarioBuilder::ConstruirFabricaDeObstaculos()
 {

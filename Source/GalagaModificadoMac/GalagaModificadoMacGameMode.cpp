@@ -94,11 +94,7 @@ void AGalagaModificadoMacGameMode::BeginPlay()
 
 		GenerarEjercito(DatosNivel.EnemigosPorGenerar);
 	}
-        FConfiguracionNivel DatosNivel = GerenteDeNiveles->GetConfiguracionActual();
-        GenerarEjercito(DatosNivel.EnemigosPorGenerar);
-    }
-
-    IniciarMusica();
+   IniciarMusica();
 }
 void AGalagaModificadoMacGameMode::ActualizarContadorTiempo()
 {
@@ -356,8 +352,6 @@ void AGalagaModificadoMacGameMode::VerificarCondicionVictoria()
 				}
 			}, 3.0f, false);
 	}
-}
-    UE_LOG(LogTemp, Warning, TEXT("¡Ejército desplegado con dificultad aplicada!"));
 }
 
 // ========== MÚSICA ==========

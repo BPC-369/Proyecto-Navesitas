@@ -59,7 +59,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     CampanaNiveles.Add(Nivel);
     
     //editas el bioma de la atmosfera
-    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 550; Nivel.CantidadObstaculosB = 40;
+    Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 550; Nivel.CantidadObstaculosB = 50;
     Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
@@ -82,10 +82,14 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
     //editas el bioma de la ciudad
-    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 100; Nivel.CantidadObstaculosB = 100;
+    Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 120; Nivel.CantidadObstaculosB = 120;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
     Nivel.EnemigosPorGenerar.Add(2, 10);
+    Nivel.EnemigosPorGenerar.Add(7, 0);
+    Nivel.EnemigosPorGenerar.Add(9, 0);
+    Nivel.EnemigosPorGenerar.Add(10, 0);
+    Nivel.EnemigosPorGenerar.Add(11, 0);
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;

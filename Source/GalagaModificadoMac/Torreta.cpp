@@ -37,7 +37,7 @@ ATorreta::ATorreta()
 		MeshTorretaAnimada->SetupAttachment(GetCapsuleComponent());
 		MeshTorretaAnimada->SetSimulatePhysics(false);
 
-		MeshTorretaAnimada->SetRelativeLocation(FVector(0.0f, 0.0f, -140.0f));
+		MeshTorretaAnimada->SetRelativeLocation(FVector(0.0f, 0.0f, -2500.0f));
 		// Pega tu ruta exacta aquí adentro si cambia de nombre:
 		static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaTorretaAsset(TEXT("SkeletalMesh'/Game/Modelos/ciudaddestruida/torreta/TorretaAnimada.TorretaAnimada'"));
 		if (MallaTorretaAsset.Succeeded())
