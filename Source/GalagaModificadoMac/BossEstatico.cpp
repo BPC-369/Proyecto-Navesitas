@@ -13,6 +13,7 @@
 #include "TimerManager.h"
 #include "FabricaInvulnerable.h"
 #include "GalagaModificadoMacGameMode.h"
+#include "BossAttackBuilder.h"
 
 ABossEstatico::ABossEstatico()
 {
@@ -92,7 +93,7 @@ ABossEstatico::ABossEstatico()
     IntervaloRisa = 15.0f;
     EscudoEffectScale = 40.0f;
     ExplosionEscudoScale = 2.0f;
-    ExplosionMuerteScale = 30.0f;   // Explosión gigante acorde al jefe
+    ExplosionMuerteScale = 30.0f;
 }
 
 void ABossEstatico::BeginPlay()
@@ -133,6 +134,11 @@ void ABossEstatico::EndPlay(const EEndPlayReason::Type EndPlayReason)
         delete EstrategiaActual;
         EstrategiaActual = nullptr;
     }
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Lluvia);
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
+    }
 }
 
 void ABossEstatico::Tick(float DeltaTime)
@@ -167,6 +173,9 @@ float ABossEstatico::TakeDamage(float DamageAmount, FDamageEvent const& DamageEv
         MultiplicadorDano = 1.5f;
         MultiplicadorVelocidad = 1.5f;
         TiempoAcumuladoCambio = 0.0f;
+
+        // Iniciar la lluvia de proyectiles (solo una vez, al entrar en furia por vida)
+        IniciarLluvia();
     }
 
     if (VidaJefe <= 0) Destroy();
@@ -185,7 +194,6 @@ void ABossEstatico::NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio)
             FActorSpawnParameters SpawnParams;
             SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-            // Calcular posición al nivel del suelo
             float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
             FVector PosicionSuelo = GetActorLocation() - FVector(0.0f, 0.0f, HalfHeight);
 
@@ -210,7 +218,6 @@ void ABossEstatico::NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio)
             }
         }
     }
-
 
     // --- Lógica original de cambio de estrategia, escudo, música ---
     if (!bFuriaCeldas)
@@ -263,7 +270,12 @@ void ABossEstatico::CambiarEstrategia(IAttackStrategy* NuevaEstrategia)
 
 void ABossEstatico::Destroyed()
 {
-    // Explosión de muerte desde la base del jefe
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Lluvia);
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
+    }
+
     if (ExplosionMuerte)
     {
         float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
@@ -297,4 +309,27 @@ void ABossEstatico::StopLaugh()
 {
     if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
     if (AudioComponent && AudioComponent->IsPlaying()) AudioComponent->Stop();
+}
+
+// ========== LLUVIA DE PROYECTILES (furia por vida) ==========
+void ABossEstatico::IniciarLluvia()
+{
+    // Solo si la furia por vida está activa y el jefe no está siendo destruido
+    if (!bFuriaVida || IntervaloLluvia <= 0.0f || IsPendingKill()) return;
+
+    EjecutarLluvia();
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimer(TimerHandle_Lluvia, this, &ABossEstatico::EjecutarLluvia, IntervaloLluvia, true);
+    }
+}
+
+void ABossEstatico::EjecutarLluvia()
+{
+    // No ejecutar si el jefe ya ha muerto o está siendo destruido
+    if (!bFuriaVida || IsPendingKill() || !GetWorld()) return;
+
+    BossAttackBuilder Builder(GetWorld(), this);
+    Builder.SetDano(150.0f).SetVelocidad(1000.0f).SetEscala(2.0f);
+    Builder.ConstruirLluviaTechada(GetActorLocation(), 10000.0f, 200, 3000.0f);
 }

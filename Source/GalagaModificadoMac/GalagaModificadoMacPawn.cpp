@@ -1,4 +1,4 @@
-#include "GalagaModificadoMacPawn.h"
+ï»¿#include "GalagaModificadoMacPawn.h"
 #include "GalagaModificadoMacProjectile.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
@@ -18,6 +18,8 @@
 #include "BombaRacimo.h"
 #include "GalagaModificadoMacGameMode.h"
 #include "GalagaGameInstance.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 
 // HUD
 #include "BossEstatico.h"
@@ -242,6 +244,26 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
     if (TiempoBuffoNave > 0.0f) { TiempoBuffoNave -= DeltaSeconds; if (TiempoBuffoNave <= 0.0f) { MoveSpeed = VelocidadOriginalNave; GetCharacterMovement()->MaxFlySpeed = MoveSpeed; MultiplicadorDanio = 1.0f; } }
     if (TiempoBuffoRobot > 0.0f) { TiempoBuffoRobot -= DeltaSeconds; if (TiempoBuffoRobot <= 0.0f) { MoveSpeed = 300.0f; GetCharacterMovement()->MaxWalkSpeed = MoveSpeed; } }
 
+    // ========== INCLINACIÃ“N VISUAL (SUAVIZADA AL LEVANTAR EL MORRO) ==========
+    if (!bMuerto && !bIsPaused && ShipMeshComponent)
+    {
+        if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Flying)
+        {
+            float FactorAtras = 0.5f;
+            float ForwardAjustado = (ForwardValue > 0.0f) ? ForwardValue : (ForwardValue * FactorAtras);
+
+            float TargetRoll = ForwardAjustado * MaxInclinacion;
+            float TargetPitch = RightValue * MaxInclinacion;
+
+            FRotator RotActual = ShipMeshComponent->GetRelativeRotation();
+
+            float NuevaRoll = FMath::FInterpTo(RotActual.Roll, TargetRoll, DeltaSeconds, VelocidadInclinacion);
+            float NuevaPitch = FMath::FInterpTo(RotActual.Pitch, TargetPitch, DeltaSeconds, VelocidadInclinacion);
+
+            ShipMeshComponent->SetRelativeRotation(FRotator(NuevaPitch, -90.0f, NuevaRoll));
+        }
+    }
+
     UpdateHealthBars(DeltaSeconds);
 
     // Dynamic crosshair
@@ -275,6 +297,22 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
             }
         }
     }
+
+    // Cargar el MPC una sola vez
+    if (!MPC_Player)
+    {
+        MPC_Player = LoadObject<UMaterialParameterCollection>(nullptr, TEXT("/Game/Geometry/texturasNave/MPC_Player"));
+    }
+
+    // Actualizar la posiciÃ³n del jugador en el MPC cada frame
+    if (MPC_Player && GetWorld())
+    {
+        UMaterialParameterCollectionInstance* Inst = GetWorld()->GetParameterCollectionInstance(MPC_Player);
+        if (Inst)
+        {
+            Inst->SetVectorParameterValue(FName("PlayerPosition"), GetActorLocation());
+        }
+    }
 }
 
 void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
@@ -299,7 +337,7 @@ void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
             {
                 float DanioPorChoque = 15.0f;
                 UGameplayStatics::ApplyDamage(OtherActor, DanioPorChoque * MultiplicadorDanio, GetController(), this, UDamageType::StaticClass());
-                GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡EMBESTIDA ROBOT!"));
+                GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Â¡EMBESTIDA ROBOT!"));
             }
         }
     }
@@ -528,7 +566,7 @@ void AGalagaModificadoMacPawn::PauseResumeGame() { ResumeGame(); }
 void AGalagaModificadoMacPawn::PauseReturnToMainMenu() { ReturnToMainMenuFromPause(); }
 // ===========================
 
-// --- PATRÓN STATE ---
+// --- PATRÃ“N STATE ---
 void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
 {
     NaveContexto->ConvertirEnRobot();
@@ -598,7 +636,7 @@ void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FV
                     }
                 }
             }
-            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("¡CORTE FRONTAL!"));
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Â¡CORTE FRONTAL!"));
         }
     }
 }
@@ -609,7 +647,7 @@ void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveCont
     NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
 }
 
-// --- PATRÓN DECORATOR ---
+// --- PATRÃ“N DECORATOR ---
 FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
     if (Contexto && Contexto->ComponenteCombate) {

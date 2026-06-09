@@ -29,6 +29,9 @@ public:
     float VidaMaxima;
     float VidaJefe;
 
+    // Número de celdas activas (público para las estrategias)
+    int32 CeldasActivas;
+
 protected:
     virtual void BeginPlay() override;
     virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
@@ -43,7 +46,6 @@ private:
 
     IAttackStrategy* EstrategiaActual;
 
-    int32 CeldasActivas;
     bool bEscudoInmune;
 
     bool bFuriaCeldas;
@@ -71,7 +73,7 @@ private:
 
     float EscudoEffectScale = 40.0f;
     float ExplosionEscudoScale = 2.0f;
-    float ExplosionMuerteScale = 3.0f;
+    float ExplosionMuerteScale = 30.0f;
 
     // ========== SONIDOS ==========
     UPROPERTY()
@@ -92,4 +94,11 @@ private:
     void StartLaugh();
     void PlayLaugh();
     void StopLaugh();
+
+    // ========== LLUVIA DE PROYECTILES ==========
+    FTimerHandle TimerHandle_Lluvia;
+    float IntervaloLluvia = 8.0f;
+
+    void IniciarLluvia();
+    void EjecutarLluvia();
 };

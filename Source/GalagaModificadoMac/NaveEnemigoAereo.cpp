@@ -17,7 +17,7 @@ ANaveEnemigoAereo::ANaveEnemigoAereo()
     MallaEnemiga->SetupAttachment(RootComponent);
     MallaEnemiga->SetNotifyRigidBodyCollision(true);
     MallaEnemiga->SetCollisionProfileName(TEXT("BlockAllDynamic"));
-
+   
     ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
     if (ComponenteCombate)
     {
