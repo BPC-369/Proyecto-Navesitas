@@ -127,6 +127,13 @@ public:
     UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
         float MoveSpeed;
 
+    // Inclinación visual de la nave
+    UPROPERTY(EditAnywhere, Category = "Movimiento")
+        float MaxInclinacion = 15.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Movimiento")
+        float VelocidadInclinacion = 5.0f;
+
     UPROPERTY(Category = Audio, EditAnywhere, BlueprintReadWrite)
         class USoundBase* FireSound;
 
@@ -203,6 +210,8 @@ public:
         class UUserWidget* BossHealthWidget;
     UPROPERTY()
         class UUserWidget* CrosshairWidget;
+    UPROPERTY()
+        class UMaterialParameterCollection* MPC_Player;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> EnemyHealthBarClass;
