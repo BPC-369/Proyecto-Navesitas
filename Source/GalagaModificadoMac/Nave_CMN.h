@@ -1,5 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
@@ -9,24 +7,20 @@
 UCLASS()
 class GALAGAMODIFICADOMAC_API ANave_CMN : public ANaveEnemigoAereo
 {
-	GENERATED_BODY()
+    GENERATED_BODY()
 public:
-	ANave_CMN();
+    ANave_CMN();
 
-	// Transforma la nave en su versión Élite en tiempo de ejecución
-	void ConvertirAElite();
+    void ConvertirAElite();
 
 protected:
-	virtual void BeginPlay() override;
-
-	// Sobrescribimos el ataque base para darle el patrón simple de la Nave Común
-	virtual void Atacar() override;
+    virtual void BeginPlay() override;
+    virtual void Atacar() override;
 
 private:
-	// Identificador para saber si esta nave es élite
-	bool bEsElite;
+    bool bEsElite;
+    FTimerHandle TemporizadorAtaque;
 
-	// Temporizador puro de C++ para gestionar el intervalo de ataque medio
-	FTimerHandle TemporizadorAtaque;
-
+    // Malla que se asignara al proyectil enemigo tras el spawn
+    UStaticMesh* MallaProyectilEnemigo;
 };

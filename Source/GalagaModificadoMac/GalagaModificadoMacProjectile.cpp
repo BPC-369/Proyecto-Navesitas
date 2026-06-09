@@ -9,7 +9,7 @@
 
 AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile() 
 {
-	InitialLifeSpan = 3.0f; // despues de 3 segs la bala se destruye si no ha chocado con nada
+	InitialLifeSpan = 8.0f; // despues de 3 segs la bala se destruye si no ha chocado con nada
 	DanoProyectil = 25.0f; // El daño que tendra la bala 
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> ProjectileMeshAsset(TEXT("/Game/TwinStick/Meshes/TwinStickProjectile.TwinStickProjectile"));
 

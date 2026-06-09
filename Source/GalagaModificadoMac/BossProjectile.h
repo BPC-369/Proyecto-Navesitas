@@ -17,11 +17,10 @@ public:
     virtual void Tick(float DeltaTime) override;
 
     void ConfigurarProyectil(float NuevaVelocidad, float NuevoDano, FVector Escala = FVector(1.0f));
-    void HabilitarEfectoOnda(float EscalaExtra, float bActivar);
     void SetDireccion(FVector Direccion);
+    void SetRalentiza(bool bActivar) { bRalentiza = bActivar; }
 
-    // Componentes públicos (para acceso desde el builder)
-    class USphereComponent* Colisionador;                // <-- ahora público
+    class USphereComponent* Colisionador;
     UProjectileMovementComponent* ComponenteMovimiento;
     float Dano;
 
@@ -38,5 +37,8 @@ private:
         UNiagaraComponent* VFXNiagara;
 
     FVector SpawnLocation;
-    //float MaxTravelDistance = 5000.0f;
-};  
+    bool bRalentiza = false;
+    float MaxTravelDistance = 5000.0f;
+
+    void AplicarRalentizacion(AActor* Victima);
+};

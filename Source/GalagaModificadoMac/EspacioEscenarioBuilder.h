@@ -15,7 +15,7 @@ public:
 	// Un solo constructor declarado
 	AEspacioEscenarioBuilder();
 
-	// Métodos obligatorios del patrón Builder
+	// Métodos obligatorios
 	virtual void ConstruirDimensiones() override;
 	virtual void ConstruirEsteticaCielo() override;
 	virtual void ConstruirFisicasSuelo() override;
@@ -23,7 +23,7 @@ public:
 	virtual void ConstruirFabricaDeEnemigos() override;
 
 private:
-	// Contenedor seguro para el material cargado en el constructor
+
 	UPROPERTY()
 	UMaterialInterface* MaterialEspacioGuardado;
 };

@@ -1,5 +1,6 @@
 #include "Torreta.h"
 #include "Components/StaticMeshComponent.h"
+#include "Components/SkeletalMeshComponent.h" 
 #include "Components/SphereComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "TimerManager.h"
@@ -13,7 +14,6 @@ ATorreta::ATorreta()
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	// INICIALIZACIÓN MANUAL (Por doble seguridad)
 	JugadorObjetivo = nullptr;
 
 	if (GetCharacterMovement() != nullptr)
@@ -23,12 +23,39 @@ ATorreta::ATorreta()
 		GetCharacterMovement()->bConstrainToPlane = true;
 	}
 
-	// Mallas
-	MallaEnemiga->SetupAttachment(GetCapsuleComponent());
-	MallaEnemiga->SetSimulatePhysics(false);
 
+	if (MallaEnemiga)
+	{
+		MallaEnemiga->SetVisibility(false);
+		MallaEnemiga->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	}
+
+
+	MeshTorretaAnimada = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("MeshTorretaAnimada"));
+	if (MeshTorretaAnimada)
+	{
+		MeshTorretaAnimada->SetupAttachment(GetCapsuleComponent());
+		MeshTorretaAnimada->SetSimulatePhysics(false);
+
+		MeshTorretaAnimada->SetRelativeLocation(FVector(0.0f, 0.0f, -140.0f));
+		// Pega tu ruta exacta aquí adentro si cambia de nombre:
+		static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaTorretaAsset(TEXT("SkeletalMesh'/Game/Modelos/ciudaddestruida/torreta/TorretaAnimada.TorretaAnimada'"));
+		if (MallaTorretaAsset.Succeeded())
+		{
+			MeshTorretaAnimada->SetSkeletalMesh(MallaTorretaAsset.Object);
+		}
+		static ConstructorHelpers::FObjectFinder<UMaterialInterface> MaterialTorretaAsset(TEXT("Material'/Game/Modelos/ciudaddestruida/torreta/mtorreta.mtorreta'"));
+
+		if (MaterialTorretaAsset.Succeeded())
+		{
+			// Le inyectamos el material al Slot 0 de la malla animada
+			MeshTorretaAnimada->SetMaterial(0, MaterialTorretaAsset.Object);
+		}
+	}
+
+	// Mallas (El cañón se acopla a la nueva malla animada para heredar su posición de disparo)
 	MallaCanion = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaCanion"));
-	MallaCanion->SetupAttachment(MallaEnemiga);
+	MallaCanion->SetupAttachment(MeshTorretaAnimada ? Cast<USceneComponent>(MeshTorretaAnimada) : GetCapsuleComponent());
 	MallaCanion->SetSimulatePhysics(false);
 
 	// Rango de Detección
@@ -36,7 +63,6 @@ ATorreta::ATorreta()
 	RangoDeteccion->SetupAttachment(RootComponent);
 	RangoDeteccion->SetSphereRadius(1200.0f);
 
-	// Esto hace que la esfera gigante sea un "fantasma" que no bloquee tus balas
 	RangoDeteccion->SetCollisionResponseToAllChannels(ECollisionResponse::ECR_Ignore);
 	RangoDeteccion->SetCollisionResponseToChannel(ECollisionChannel::ECC_Pawn, ECollisionResponse::ECR_Overlap);
 	RangoDeteccion->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
@@ -52,12 +78,15 @@ ATorreta::ATorreta()
 		ComponenteCombate->Faccion = FName("Enemigo");
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaBase(TEXT("StaticMesh'/Engine/BasicShapes/Cylinder.Cylinder'"));
+	// Dejamos esto quieto por si la clase base necesita procesar algo, pero ya no afectará visualmente
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaBase(TEXT(""));
 	if (FormaBase.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(FormaBase.Object);
 	}
 }
+
+
 
 void ATorreta::BeginPlay()
 {

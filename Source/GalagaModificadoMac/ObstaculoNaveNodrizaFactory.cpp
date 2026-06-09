@@ -6,17 +6,17 @@
 #include "UObject/ConstructorHelpers.h"
 #include "Engine/World.h"
 
-AObstaculoNaveNodrizaFactory::AObstaculoNaveNodrizaFactory()
+AObstaculoNaveNodrizaFactory::AObstaculoNaveNodrizaFactory() 
 {
 	// Aquí cargas tus mallas de la nave nodriza. 
 	// Reemplaza estas rutas de ejemplo por las carpetas reales de tus modelos 3D
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshPasilloAsset(TEXT("StaticMesh'/Game/Modelos/navenodriza/Obstaculos/FuturePillarsBaked.FuturePillarsBaked'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshPasilloAsset(TEXT("StaticMesh'/Game/Modelos/navenodriza/ayudas/torreMoba_Cubo_000.torreMoba_Cubo_000'"));
 	if (MeshPasilloAsset.Succeeded())
 	{
 		MallasPasillos.Add(MeshPasilloAsset.Object);
 	}
 
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshTorretaAsset(TEXT("StaticMesh'/Game/Geometry/Meshes/1M_Cube.1M_Cube'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshTorretaAsset(TEXT("StaticMesh'/Game/Modelos/navenodriza/Obstaculos/FuturePillarsBaked.FuturePillarsBaked'"));
 	if (MeshTorretaAsset.Succeeded())
 	{
 		MallasTorretas.Add(MeshTorretaAsset.Object);
@@ -53,8 +53,8 @@ AObstaculoDestruido* AObstaculoNaveNodrizaFactory::CrearObstaculoEspecifico(UWor
 		SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		AObstaculoDestruido* NuevoObstaculo = Mundo->SpawnActor<AObstaculoDestruido>(
-			AObstaculoDestruido::StaticClass(), Posicion, Rotacion, SpawnParams
-		);
+			Posicion, Rotacion, SpawnParams
+			);
 
 		if (NuevoObstaculo)
 		{
@@ -62,6 +62,21 @@ AObstaculoDestruido* AObstaculoNaveNodrizaFactory::CrearObstaculoEspecifico(UWor
 			if (MeshComp)
 			{
 				MeshComp->SetStaticMesh(MallaElegida);
+
+				if (Tipo.Equals(TEXT("Pasillo")))
+				{
+					float EscalaPasillo = FMath::RandRange(1.5f, 2.5f);
+					MeshComp->SetWorldScale3D(FVector(EscalaPasillo, EscalaPasillo, EscalaPasillo));
+				}
+				else if (Tipo.Equals(TEXT("Torreta")))
+				{
+					MeshComp->SetWorldScale3D(FVector(10.0f, 10.0f, 800.0f));
+				}
+				else if (Tipo.Equals(TEXT("Compuerta")))
+				{
+					MeshComp->SetWorldScale3D(FVector(25.0f, 25.0f, 100.0f));
+				}
+
 				return NuevoObstaculo;
 			}
 		}
@@ -69,4 +84,3 @@ AObstaculoDestruido* AObstaculoNaveNodrizaFactory::CrearObstaculoEspecifico(UWor
 
 	return nullptr;
 }
-

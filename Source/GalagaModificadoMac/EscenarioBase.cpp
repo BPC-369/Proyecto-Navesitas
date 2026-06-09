@@ -124,3 +124,29 @@ void AEscenarioBase::AplicarEscalaFisica()
 	ParedEste->SetRelativeLocation(FVector(0.0f, LargoY / 2.0f, (AltoZ / 2.0f)));
 	ParedOeste->SetRelativeLocation(FVector(0.0f, -LargoY / 2.0f, (AltoZ / 2.0f)));
 }
+FVector AEscenarioBase::ObtenerPosicionSpawnSegura(float Ancho, float Largo, float Margen, float AlturaZ)
+{
+	FVector PosicionJugador = FVector(0.0f, 0.0f, AlturaZ); // Punto de partida de la nave
+	FVector PosicionCandidata;
+	float RadioSeguridad = 1500.0f; // ?? Zona de exclusión: ningún bloque a menos de 1500 unidades
+	bool bPosicionValida = false;
+	int32 Intentos = 0;
+
+	// Ciclo de descarte: genera coordenadas hasta que una pase el control de distancia
+	while (!bPosicionValida && Intentos < 10)
+	{
+		float RndX = FMath::FRandRange((-Ancho / 2.0f) + Margen, (Ancho / 2.0f) - Margen);
+		float RndY = FMath::FRandRange((-Largo / 2.0f) + Margen, (Largo / 2.0f) - Margen);
+
+		PosicionCandidata = FVector(RndX, RndY, AlturaZ);
+
+		// Medimos la distancia euclidiana entre el candidato y el jugador
+		if (FVector::Dist(PosicionCandidata, PosicionJugador) > RadioSeguridad)
+		{
+			bPosicionValida = true; // Superó el umbral seguro
+		}
+		Intentos++;
+	}
+
+	return PosicionCandidata;
+}

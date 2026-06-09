@@ -17,7 +17,7 @@ AObstaculoNube::AObstaculoNube()
 	}
 
 	// material(color) de nubes
-	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatDefecto(TEXT("Material'/Game/Modelos/nubes/Material.Material'"));
+	static ConstructorHelpers::FObjectFinder<UMaterialInterface> MatDefecto(TEXT("Material'/Game/Modelos/Atmosfera/Mcieloapocaliptico.Mcieloapocaliptico'"));
 	if (MatDefecto.Succeeded())
 	{
 		MallaComponent->SetMaterial(0, MatDefecto.Object);
