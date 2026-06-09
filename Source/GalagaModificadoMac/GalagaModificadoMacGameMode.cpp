@@ -30,7 +30,7 @@
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
 {
-    NivelAIniciar = 0;
+    NivelAIniciar = -1;
     DificultadActual = TEXT("Normal");
 
     static ConstructorHelpers::FClassFinder<APawn> NaveBP(TEXT("/Game/Blueprints/BP_NaveJugador"));

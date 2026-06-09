@@ -19,7 +19,7 @@ ARobotFrancotirador::ARobotFrancotirador()
     TiempoEntreDisparos = 2.5f;
     TiempoUltimoDisparo = 0.0f;
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> MallaFrancotirador(TEXT("StaticMesh'/Engine/BasicShapes/Cube.Cube'"));
+    static ConstructorHelpers::FObjectFinder<UStaticMesh> MallaFrancotirador(TEXT("SkeletalMesh'/Game/Geometry/francotirador/mallaFrancotirador.mallaFrancotirador'"));
     if (MallaFrancotirador.Succeeded() && MallaEnemiga != nullptr)
     {
         MallaEnemiga->SetStaticMesh(MallaFrancotirador.Object);

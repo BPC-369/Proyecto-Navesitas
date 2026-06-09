@@ -107,7 +107,7 @@ class AGalagaModificadoMacPawn : public ACharacter
 {
     GENERATED_BODY()
 
-        UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class UStaticMeshComponent* ShipMeshComponent;
 
     UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -147,6 +147,19 @@ public:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combate")
         UComponenteCombate* ComponenteCombate;
 
+    // --- ANIMACIONES DEL ROBOT ---
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeAtaqueNormal;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeAtaqueRaro;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeAtaqueCargado;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeDisparoQ;
+
     virtual void Tick(float DeltaSeconds) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
     virtual void NotifyActorBeginOverlap(AActor* OtherActor) override;
@@ -156,6 +169,12 @@ public:
     void ShotTimerExpired();
     void EmpezarDisparo();
     void DetenerDisparo();
+
+    void IniciarCorrer();
+    void DetenerCorrer();
+    void AtaqueSecundario();
+    void DisparoEspecial();
+    void EjecutarSalto();
 
     bool bEstaDisparando;
     float MultiplicadorDanio;
@@ -256,4 +275,5 @@ public:
 
 protected:
     virtual void BeginPlay() override;
+    virtual void Destroyed() override;
 };
