@@ -25,24 +25,29 @@ public:
 
     void AsignarObservador(ICeldaObserver* Observador);
 
-    // Getters para la vida (usados por el HUD)
     float GetVida() const { return Vida; }
-    float GetVidaMaxima() const { return 400.0f; }  // Ajusta si cambiaste la vida máxima
+    float GetVidaMaxima() const { return 400.0f; }
 
 protected:
     virtual void BeginPlay() override;
+    virtual void Destroyed() override;
 
 private:
-    UPROPERTY()
+    UPROPERTY(VisibleAnywhere)
         class USceneComponent* RaizCelda;
 
-    UPROPERTY()
-        class USceneComponent* PivoteCentrado;
-
-    UPROPERTY()
+    UPROPERTY(VisibleAnywhere)
         class UStaticMeshComponent* MallaCelda;
 
     float Vida;
     bool bDestruida;
     ICeldaObserver* MiObservador;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
+        class UParticleSystem* ExplosionEffect;
+
+    UPROPERTY(EditDefaultsOnly, Category = "Efectos")
+        class USoundBase* ExplosionSound;
+
+    float ExplosionScale = 15.0f;
 };

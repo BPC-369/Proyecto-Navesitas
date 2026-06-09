@@ -21,7 +21,7 @@ ARobot_Lider::ARobot_Lider()
 	}
 	// Nota: La velocidad alta se configura en el CharacterMovement 
 	// o mediante una variable si es un Pawn simple.
-	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCono(TEXT("StaticMesh'/Game/StarterContent/Shapes/Shape_QuadPyramid.Shape_QuadPyramid'"));
+	static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCono(TEXT("SkeletalMesh'/Game/Geometry/Robot_Lider/mallaRobotLider.mallaRobotLider'"));
 	if (FormaCono.Succeeded() && MallaEnemiga != nullptr)
 	{
 		MallaEnemiga->SetStaticMesh(FormaCono.Object);

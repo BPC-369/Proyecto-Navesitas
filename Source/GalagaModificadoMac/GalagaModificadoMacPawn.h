@@ -8,6 +8,7 @@
 
 class UStaticMesh;
 class UComponenteCombate;
+class USkeletalMeshComponent;
 
 // --- PATRÓN STATE ---
 class AGalagaModificadoMacPawn;
@@ -106,7 +107,7 @@ class AGalagaModificadoMacPawn : public ACharacter
 {
     GENERATED_BODY()
 
-        UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+    UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class UStaticMeshComponent* ShipMeshComponent;
 
     UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -114,6 +115,9 @@ class AGalagaModificadoMacPawn : public ACharacter
 
     UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class USpringArmComponent* CameraBoom;
+
+    UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+        USkeletalMeshComponent* RobotMeshComponent;
 
 public:
     AGalagaModificadoMacPawn();
@@ -127,6 +131,13 @@ public:
     UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
         float MoveSpeed;
 
+    // Inclinación visual de la nave
+    UPROPERTY(EditAnywhere, Category = "Movimiento")
+        float MaxInclinacion = 15.0f;
+
+    UPROPERTY(EditAnywhere, Category = "Movimiento")
+        float VelocidadInclinacion = 5.0f;
+
     UPROPERTY(Category = Audio, EditAnywhere, BlueprintReadWrite)
         class USoundBase* FireSound;
 
@@ -135,6 +146,19 @@ public:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combate")
         UComponenteCombate* ComponenteCombate;
+
+    // --- ANIMACIONES DEL ROBOT ---
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeAtaqueNormal;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeAtaqueRaro;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeAtaqueCargado;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animaciones Robot")
+        class UAnimMontage* MontajeDisparoQ;
 
     virtual void Tick(float DeltaSeconds) override;
     virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
@@ -145,6 +169,12 @@ public:
     void ShotTimerExpired();
     void EmpezarDisparo();
     void DetenerDisparo();
+
+    void IniciarCorrer();
+    void DetenerCorrer();
+    void AtaqueSecundario();
+    void DisparoEspecial();
+    void EjecutarSalto();
 
     bool bEstaDisparando;
     float MultiplicadorDanio;
@@ -176,9 +206,11 @@ public:
     FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
     FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
     FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+    FORCEINLINE class USkeletalMeshComponent* GetRobotMeshComponent() const { return RobotMeshComponent; }
 
     void Transformar();
     void ManejarMuerte();
+    void InvertirMouseFPS(float Valor);
 
     UFUNCTION(BlueprintImplementableEvent, Category = "Muerte")
         void OnDeathEvent();
@@ -194,33 +226,54 @@ public:
     void ConvertirEnNave();
     void ConvertirEnRobot();
 
-    // ========== BARRAS DE VIDA EN HUD ==========
+    // ========== HUD ==========
     UPROPERTY()
         TMap<AActor*, class UUserWidget*> EnemyHealthWidgets;
-
     UPROPERTY()
         class UUserWidget* EnemyListWidget;
-
     UPROPERTY()
         class UUserWidget* BossHealthWidget;
+    UPROPERTY()
+        class UUserWidget* CrosshairWidget;
+    UPROPERTY()
+        class UMaterialParameterCollection* MPC_Player;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> EnemyHealthBarClass;
-
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> EnemyListClass;
-
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> BossHealthClass;
-
-    // Clase del crosshair (cargada en el constructor, creada en BeginPlay)
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> CrosshairClass;
 
-    void UpdateHealthBars();
+    void UpdateHealthBars(float DeltaSeconds);
     class UUserWidget* CreateHealthBarForEnemy(AActor* Enemy);
-    // ===========================================
+
+    bool bEnemyTargeted = false;
+    // =======================
+
+    // ========== PAUSA ==========
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+        TSubclassOf<class UUserWidget> PauseMenuClass;
+
+    UPROPERTY()
+        class UUserWidget* PauseMenuWidget;
+
+    bool bIsPaused = false;
+
+    void OnPauseButtonPressed();
+    void ResumeGame();
+    void ReturnToMainMenuFromPause();
+
+    UFUNCTION(BlueprintCallable)
+        void PauseResumeGame();
+
+    UFUNCTION(BlueprintCallable)
+        void PauseReturnToMainMenu();
+    // ===========================
 
 protected:
     virtual void BeginPlay() override;
+    virtual void Destroyed() override;
 };

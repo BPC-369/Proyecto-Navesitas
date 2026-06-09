@@ -27,5 +27,4 @@ private:
 	FTimerHandle TimerHandle_Canalizacion;
 
 	// Seguro para saber si el robot ya está en medio de un ataque
-	bool bEstaAtacando;
 };

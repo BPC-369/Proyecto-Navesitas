@@ -1,4 +1,4 @@
-#include "GalagaModificadoMacPawn.h"
+ï»¿#include "GalagaModificadoMacPawn.h"
 #include "GalagaModificadoMacProjectile.h"
 #include "TimerManager.h"
 #include "UObject/ConstructorHelpers.h"
@@ -17,8 +17,11 @@
 #include "GameFramework/PlayerController.h"
 #include "BombaRacimo.h"
 #include "GalagaModificadoMacGameMode.h"
+#include "GalagaGameInstance.h"
+#include "Materials/MaterialParameterCollection.h"
+#include "Materials/MaterialParameterCollectionInstance.h"
 
-// Para las barras de vida
+// HUD
 #include "BossEstatico.h"
 #include "NaveComando.h"
 #include "CeldasEnergia.h"
@@ -27,6 +30,7 @@
 #include "Components/PanelWidget.h"
 #include "EngineUtils.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Components/PrimitiveComponent.h"
 
 const FName AGalagaModificadoMacPawn::MoveForwardBinding("MoveForward");
 const FName AGalagaModificadoMacPawn::MoveRightBinding("MoveRight");
@@ -50,8 +54,22 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow04.StarSparrow04'"));
     if (FormaNave.Succeeded()) RopaNave = FormaNave.Object;
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCubo(TEXT("StaticMesh'/Game/Geometry/pawn/pawn09.pawn09'"));
-    if (FormaCubo.Succeeded()) RopaCubo = FormaCubo.Object;
+    RobotMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
+    RobotMeshComponent->SetupAttachment(GetCapsuleComponent());
+    RobotMeshComponent->SetCollisionProfileName(TEXT("NoCollision")); // Fantasma físico
+    RobotMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+    RobotMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -60.0f)); // Alineamos los pies al piso
+    RobotMeshComponent->SetVisibility(false); // Nace oculto
+
+    static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaRobotAsset(TEXT("SkeletalMesh'/Game/Geometry/PawnRobot/MallaPawnRobot.MallaPawnRobot'"));
+    if (MallaRobotAsset.Succeeded()) RobotMeshComponent->SetSkeletalMesh(MallaRobotAsset.Object);
+
+    static ConstructorHelpers::FClassFinder<UAnimInstance> AnimRobotAsset(TEXT("AnimBlueprint'/Game/Blueprints/ABP_PawnRobot.ABP_PawnRobot_C'"));
+    if (AnimRobotAsset.Succeeded())
+    {
+        RobotMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+        RobotMeshComponent->SetAnimInstanceClass(AnimRobotAsset.Class);
+    }
 
     static ConstructorHelpers::FObjectFinder<USoundBase> FireAudio(TEXT("SoundWave'/Game/music/lasecito.lasecito'"));
     FireSound = FireAudio.Object;
@@ -71,8 +89,8 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
     ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
 
-    MoveSpeed = 1700.0f;
-    VelocidadOriginalNave = 1700.0f;
+    MoveSpeed = 2500.0f;
+    VelocidadOriginalNave = 2500.0f;
 
     GunOffset = FVector(130.f, 0.f, 0.f);
     FireRate = 0.1f;
@@ -91,7 +109,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     bUseControllerRotationYaw = false;
     bUseControllerRotationRoll = false;
 
-    EstadoActual = new FEstadoNaveVoladora();
+    EstadoActual = nullptr;
 
     if (ComponenteCombate != nullptr)
     {
@@ -103,7 +121,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     bMuerto = false;
     WidgetGameOverClass = nullptr;
 
-    // Carga de widgets para las barras de vida y crosshair
+    // Carga de widgets para las barras de vida, crosshair y pausa
     static ConstructorHelpers::FClassFinder<UUserWidget> HealthBarBP(TEXT("/Game/Blueprints/WBP_EnemyHealthBar"));
     if (HealthBarBP.Succeeded()) EnemyHealthBarClass = HealthBarBP.Class;
 
@@ -115,37 +133,49 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
     static ConstructorHelpers::FClassFinder<UUserWidget> CrosshairBP(TEXT("/Game/Blueprints/WBP_Crosshair"));
     if (CrosshairBP.Succeeded()) CrosshairClass = CrosshairBP.Class;
+
+    static ConstructorHelpers::FClassFinder<UUserWidget> PauseMenuBP(TEXT("/Game/Blueprints/WBP_PauseMenu"));
+    if (PauseMenuBP.Succeeded()) PauseMenuClass = PauseMenuBP.Class;
 }
 
 void AGalagaModificadoMacPawn::BeginPlay()
 {
     Super::BeginPlay();
+
+    EstadoActual = new FEstadoNaveVoladora();
+
     if (ShipMeshComponent)
         ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
     ConvertirEnNave();
 
-    // Crear widget contenedor de la lista de enemigos (lateral izquierdo)
     if (EnemyListClass)
     {
         EnemyListWidget = CreateWidget<UUserWidget>(GetWorld(), EnemyListClass);
-        if (EnemyListWidget)
-            EnemyListWidget->AddToViewport(10); // ZOrder bajo
+        if (EnemyListWidget) EnemyListWidget->AddToViewport(10);
     }
 
-    // Crear widget de la barra del jefe (centro superior)
     if (BossHealthClass)
     {
         BossHealthWidget = CreateWidget<UUserWidget>(GetWorld(), BossHealthClass);
-        if (BossHealthWidget)
-            BossHealthWidget->AddToViewport();
+        if (BossHealthWidget) BossHealthWidget->AddToViewport();
     }
 
-    // Crear y mostrar el crosshair
     if (CrosshairClass)
     {
-        UUserWidget* CrosshairWidget = CreateWidget<UUserWidget>(GetWorld(), CrosshairClass);
-        if (CrosshairWidget)
-            CrosshairWidget->AddToViewport(100); // ZOrder alto, siempre visible
+        CrosshairWidget = CreateWidget<UUserWidget>(GetWorld(), CrosshairClass);
+        if (CrosshairWidget) CrosshairWidget->AddToViewport(100);
+    }
+}
+
+void AGalagaModificadoMacPawn::Destroyed()
+{
+    Super::Destroyed();
+
+    // Destruimos el estado actual de la memoria cuando el Pawn se destruye
+    if (EstadoActual != nullptr)
+    {
+        delete EstadoActual;
+        EstadoActual = nullptr;
     }
 }
 
@@ -161,89 +191,164 @@ void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* 
 
     PlayerInputComponent->BindAction("BotonCambio", IE_Pressed, this, &AGalagaModificadoMacPawn::Transformar);
     PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-    PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+    PlayerInputComponent->BindAxis("LookUp", this, &AGalagaModificadoMacPawn::InvertirMouseFPS);
     PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::EmpezarDisparo);
     PlayerInputComponent->BindAction("Disparar", IE_Released, this, &AGalagaModificadoMacPawn::DetenerDisparo);
+    PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &AGalagaModificadoMacPawn::OnPauseButtonPressed);
+    
+    PlayerInputComponent->BindAction("AtaqueCargado", IE_Pressed, this, &AGalagaModificadoMacPawn::AtaqueSecundario);
+    PlayerInputComponent->BindAction("Correr", IE_Pressed, this, &AGalagaModificadoMacPawn::IniciarCorrer);
+    PlayerInputComponent->BindAction("Correr", IE_Released, this, &AGalagaModificadoMacPawn::DetenerCorrer);
+    PlayerInputComponent->BindAction("DisparoQ", IE_Pressed, this, &AGalagaModificadoMacPawn::DisparoEspecial);
+    PlayerInputComponent->BindAction("Saltar", IE_Pressed, this, &AGalagaModificadoMacPawn::EjecutarSalto);
 }
 
 void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    if (bIsPaused) return;
 
     const float ForwardValue = GetInputAxisValue(MoveForwardBinding);
     const float RightValue = GetInputAxisValue(MoveRightBinding);
     const float UpValue = GetInputAxisValue(MoveUpBinding);
 
-    const float ValorMouseX = GetInputAxisValue("Turn");
-    const float ValorMouseY = GetInputAxisValue("LookUp");
-
-    if (CameraBoom != nullptr && (ValorMouseX != 0.0f || ValorMouseY != 0.0f))
+    if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Flying)
     {
-        FRotator RotacionNave = FRotator(ValorMouseY * 3.0f, ValorMouseX * 3.0f, 0.0f);
-        AddActorLocalRotation(RotacionNave);
+        const float ValorMouseX = GetInputAxisValue("Turn");
+        const float ValorMouseY = GetInputAxisValue("LookUp");
+
+        if (CameraBoom != nullptr && (ValorMouseX != 0.0f || ValorMouseY != 0.0f))
+        {
+            // 1. Obtenemos la rotación actual
+            FRotator RotacionActual = GetActorRotation();
+
+            // 2. Calculamos la nueva dirección
+            float NuevoPitch = RotacionActual.Pitch + (ValorMouseY * 3.0f);
+            float NuevoYaw = RotacionActual.Yaw + (ValorMouseX * 3.0f);
+
+            // 3. LIMITAMOS que tanto puede subir o bajar la nariz (Ej: -60 a 60 grados)
+            // Esto evita que la nave de una vuelta completa hacia atrás y quede de cabeza
+            NuevoPitch = FMath::Clamp(NuevoPitch, -60.0f, 60.0f);
+
+            // 4. APLICAMOS, forzando el Roll a 0.0f para que SIEMPRE esté "de pie"
+            FRotator NuevaRotacion = FRotator(NuevoPitch, NuevoYaw, 0.0f);
+
+            SetActorRotation(NuevaRotacion);
+        }
+    }
+    else if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Walking)
+    {
+        // CONTROLES DEL ROBOT (El cuerpo apunta directamente al cursor)
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (PC)
+        {
+            FHitResult HitResult;
+            if (PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
+            {
+                FVector DireccionMouse = HitResult.ImpactPoint - GetActorLocation();
+                DireccionMouse.Z = 0.0f; // Evita que el robot se incline hacia arriba o abajo
+                SetActorRotation(DireccionMouse.Rotation());
+            }
+        }
     }
 
     AddMovementInput(GetActorForwardVector(), ForwardValue);
     AddMovementInput(GetActorRightVector(), RightValue);
     AddMovementInput(GetActorUpVector(), UpValue);
 
-    if (bEstaDisparando && bCanFire)
-        FireShot(GetActorForwardVector());
+    if (bEstaDisparando && bCanFire) FireShot(GetActorForwardVector());
 
     if (TiempoDisparoCuadruple > 0.0f) TiempoDisparoCuadruple -= DeltaSeconds;
     if (TiempoCortesDistancia > 0.0f) TiempoCortesDistancia -= DeltaSeconds;
 
-    if (TiempoInmunidad > 0.0f)
-    {
-        TiempoInmunidad -= DeltaSeconds;
-        if (TiempoInmunidad <= 0.0f) MultiplicadorDanio = 1.0f;
-    }
+    if (TiempoInmunidad > 0.0f) { TiempoInmunidad -= DeltaSeconds; if (TiempoInmunidad <= 0.0f) MultiplicadorDanio = 1.0f; }
+    if (TiempoBuffoNave > 0.0f) { TiempoBuffoNave -= DeltaSeconds; if (TiempoBuffoNave <= 0.0f) { MoveSpeed = VelocidadOriginalNave; GetCharacterMovement()->MaxFlySpeed = MoveSpeed; MultiplicadorDanio = 1.0f; } }
+    if (TiempoBuffoRobot > 0.0f) { TiempoBuffoRobot -= DeltaSeconds; if (TiempoBuffoRobot <= 0.0f) { MoveSpeed = 300.0f; GetCharacterMovement()->MaxWalkSpeed = MoveSpeed; } }
 
-    if (TiempoBuffoNave > 0.0f)
+    // ========== INCLINACIÃ“N VISUAL (SUAVIZADA AL LEVANTAR EL MORRO) ==========
+    if (!bMuerto && !bIsPaused && ShipMeshComponent)
     {
-        TiempoBuffoNave -= DeltaSeconds;
-        if (TiempoBuffoNave <= 0.0f)
+        if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Flying)
         {
-            MoveSpeed = VelocidadOriginalNave;
-            GetCharacterMovement()->MaxFlySpeed = MoveSpeed;
-            MultiplicadorDanio = 1.0f;
+            float FactorAtras = 0.5f;
+            float ForwardAjustado = (ForwardValue > 0.0f) ? ForwardValue : (ForwardValue * FactorAtras);
+
+            float TargetRoll = ForwardAjustado * MaxInclinacion;
+            float TargetPitch = RightValue * MaxInclinacion;
+
+            FRotator RotActual = ShipMeshComponent->GetRelativeRotation();
+
+            float NuevaRoll = FMath::FInterpTo(RotActual.Roll, TargetRoll, DeltaSeconds, VelocidadInclinacion);
+            float NuevaPitch = FMath::FInterpTo(RotActual.Pitch, TargetPitch, DeltaSeconds, VelocidadInclinacion);
+
+            ShipMeshComponent->SetRelativeRotation(FRotator(NuevaPitch, -90.0f, NuevaRoll));
         }
     }
 
-    if (TiempoBuffoRobot > 0.0f)
+    UpdateHealthBars(DeltaSeconds);
+
+    // Dynamic crosshair
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (PC && CrosshairWidget)
     {
-        TiempoBuffoRobot -= DeltaSeconds;
-        if (TiempoBuffoRobot <= 0.0f)
+        FVector CamLoc; FRotator CamRot;
+        PC->GetPlayerViewPoint(CamLoc, CamRot);
+        FVector Start = CamLoc;
+        FVector End = Start + (CamRot.Vector() * 5000.0f);
+        FHitResult Hit;
+        FCollisionQueryParams Params;
+        Params.AddIgnoredActor(this);
+        bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Pawn, Params);
+        bool bFound = false;
+        if (bHit && Hit.GetActor())
         {
-            MoveSpeed = 300.0f;
-            GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+            UComponenteCombate* Comp = Hit.GetActor()->FindComponentByClass<UComponenteCombate>();
+            if (Comp && Comp->Faccion == FName("Enemigo")) bFound = true;
+        }
+        if (bFound != bEnemyTargeted)
+        {
+            bEnemyTargeted = bFound;
+            UFunction* Func = CrosshairWidget->FindFunction(FName("SetTargeted"));
+            if (Func)
+            {
+                struct FParams { bool bTargeted; };
+                FParams ParamsStruct;
+                ParamsStruct.bTargeted = bFound;
+                CrosshairWidget->ProcessEvent(Func, &ParamsStruct);
+            }
         }
     }
 
-    UpdateHealthBars();
+    // Cargar el MPC una sola vez
+    if (!MPC_Player)
+    {
+        MPC_Player = LoadObject<UMaterialParameterCollection>(nullptr, TEXT("/Game/Geometry/texturasNave/MPC_Player"));
+    }
+
+    // Actualizar la posiciÃ³n del jugador en el MPC cada frame
+    if (MPC_Player && GetWorld())
+    {
+        UMaterialParameterCollectionInstance* Inst = GetWorld()->GetParameterCollectionInstance(MPC_Player);
+        if (Inst)
+        {
+            Inst->SetVectorParameterValue(FName("PlayerPosition"), GetActorLocation());
+        }
+    }
 }
 
 void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 {
-    if (EstadoActual != nullptr)
-        EstadoActual->EjecutarAtaque(this, FireDirection);
-
+    if (EstadoActual != nullptr) EstadoActual->EjecutarAtaque(this, FireDirection);
     bCanFire = false;
     GetWorld()->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &AGalagaModificadoMacPawn::ShotTimerExpired, FireRate);
-
-    if (FireSound != nullptr)
-        UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+    if (FireSound != nullptr) UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 }
 
-void AGalagaModificadoMacPawn::ShotTimerExpired()
-{
-    bCanFire = true;
-}
+void AGalagaModificadoMacPawn::ShotTimerExpired() { bCanFire = true; }
 
 void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
 {
     Super::NotifyActorBeginOverlap(OtherActor);
-
     if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Walking)
     {
         if (OtherActor != nullptr && OtherActor != this)
@@ -253,21 +358,21 @@ void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
             {
                 float DanioPorChoque = 15.0f;
                 UGameplayStatics::ApplyDamage(OtherActor, DanioPorChoque * MultiplicadorDanio, GetController(), this, UDamageType::StaticClass());
-                GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("¡EMBESTIDA ROBOT!"));
+                GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Red, TEXT("Â¡EMBESTIDA ROBOT!"));
             }
         }
     }
 }
 
-void AGalagaModificadoMacPawn::EmpezarDisparo()
+void AGalagaModificadoMacPawn::InvertirMouseFPS(float Valor)
 {
-    bEstaDisparando = true;
+    // Multiplicamos por -1 para invertir el eje y lograr un control FPS tradicional.
+    // Esto solo afectará al Robot, porque la Nave procesa su propia rotación en el Tick.
+    AddControllerPitchInput(Valor * -1.0f);
 }
 
-void AGalagaModificadoMacPawn::DetenerDisparo()
-{
-    bEstaDisparando = false;
-}
+void AGalagaModificadoMacPawn::EmpezarDisparo() { bEstaDisparando = true; }
+void AGalagaModificadoMacPawn::DetenerDisparo() { bEstaDisparando = false; }
 
 void AGalagaModificadoMacPawn::CambiarEstado(IEstadoNave* NuevoEstado)
 {
@@ -277,14 +382,55 @@ void AGalagaModificadoMacPawn::CambiarEstado(IEstadoNave* NuevoEstado)
 
 void AGalagaModificadoMacPawn::ConvertirEnNave()
 {
-    if (RopaNave != nullptr) ShipMeshComponent->SetStaticMesh(RopaNave);
+    // 1. Ocultar Robot, Mostrar Nave
+    if (RobotMeshComponent) RobotMeshComponent->SetVisibility(false);
+    if (ShipMeshComponent)
+    {
+        ShipMeshComponent->SetVisibility(true);
+        if (RopaNave) ShipMeshComponent->SetStaticMesh(RopaNave);
+    }
+
     if (GetCharacterMovement()) GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+
+    // 3. RESTAURAR CÁMARA ORIGINAL DE LA NAVE
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = 800.f; // <-- DE VUELTA A TU VALOR ORIGINAL
+        CameraBoom->SocketOffset = FVector(0.f, 0.f, 150.f);
+        CameraBoom->bUsePawnControlRotation = false;
+        CameraBoom->SetUsingAbsoluteRotation(false);
+        CameraBoom->SetRelativeRotation(FRotator(-15.f, 0.f, 0.f));
+    }
+
+    bUseControllerRotationYaw = false;
 }
 
 void AGalagaModificadoMacPawn::ConvertirEnRobot()
 {
-    if (RopaCubo != nullptr) ShipMeshComponent->SetStaticMesh(RopaCubo);
+    // 1. Ocultar Nave, Mostrar Robot
+    if (ShipMeshComponent) ShipMeshComponent->SetVisibility(false);
+    if (RobotMeshComponent) RobotMeshComponent->SetVisibility(true);
+
+    // 2. Físicas de caminar
     if (GetCharacterMovement()) GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+    // 3. CÁMARA DE ROBOT (Primera Persona)
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = 400.f; // Pegamos la cámara completamente al cuerpo (0 de distancia)
+
+        CameraBoom->SocketOffset = FVector::ZeroVector;
+        // Movemos la cámara a la altura de la cabeza (Z=60) 
+        // y la empujamos un poco hacia adelante (X=40) para que no veas la espalda del robot por dentro
+        CameraBoom->SocketOffset = FVector(20.f, 0.f, 100.f);
+        CameraBoom->SetUsingAbsoluteRotation(false);
+
+        // MAGIA: Le decimos a la cámara que obedezca directamente al movimiento del mouse
+        CameraBoom->bUsePawnControlRotation = true;
+    }
+
+    // MAGIA 2: Le decimos al cuerpo del robot que gire de izquierda a derecha cuando muevas la cámara
+    bUseControllerRotationYaw = true;
 }
 
 void AGalagaModificadoMacPawn::Transformar()
@@ -295,105 +441,61 @@ void AGalagaModificadoMacPawn::Transformar()
 float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     if (TiempoInmunidad > 0.0f) return 0.0f;
-
     float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
     if (ComponenteCombate != nullptr)
     {
         DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
-        if (!bMuerto && ComponenteCombate->VidaActual <= 0.0f)
-        {
-            bMuerto = true;
-            ManejarMuerte();
-        }
+        if (!bMuerto && ComponenteCombate->VidaActual <= 0.0f) { bMuerto = true; ManejarMuerte(); }
     }
-
     return DanioReal;
 }
 
 void AGalagaModificadoMacPawn::ManejarMuerte()
 {
+    for (auto& Par : EnemyHealthWidgets) { if (Par.Value) Par.Value->RemoveFromParent(); }
+    EnemyHealthWidgets.Empty();
+    if (EnemyListWidget) { EnemyListWidget->RemoveFromParent(); EnemyListWidget = nullptr; }
+    if (BossHealthWidget) { BossHealthWidget->RemoveFromParent(); BossHealthWidget = nullptr; }
+    if (CrosshairWidget) { CrosshairWidget->RemoveFromParent(); CrosshairWidget = nullptr; }
+    if (PauseMenuWidget) { PauseMenuWidget->RemoveFromParent(); PauseMenuWidget = nullptr; }
+
     AGalagaModificadoMacGameMode* GM = Cast<AGalagaModificadoMacGameMode>(GetWorld()->GetAuthGameMode());
     if (GM) GM->DetenerMusica();
 
     UGameplayStatics::SetGamePaused(GetWorld(), true);
 
     APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    if (PC)
-    {
-        FInputModeUIOnly InputMode;
-        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-        PC->SetInputMode(InputMode);
-        PC->bShowMouseCursor = true;
-    }
+    if (PC) { FInputModeUIOnly InputMode; InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); PC->SetInputMode(InputMode); PC->bShowMouseCursor = true; }
 
     OnDeathEvent();
-
-    if (WidgetGameOverClass)
-    {
-        UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(GetWorld(), WidgetGameOverClass);
-        if (GameOverWidget) GameOverWidget->AddToViewport();
-    }
+    if (WidgetGameOverClass) { UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(GetWorld(), WidgetGameOverClass); if (GameOverWidget) GameOverWidget->AddToViewport(); }
 }
 
-float AGalagaModificadoMacPawn::GetVidaActual() const
-{
-    if (ComponenteCombate) return ComponenteCombate->VidaActual;
-    return 0.0f;
-}
-
-float AGalagaModificadoMacPawn::GetVidaMaxima() const
-{
-    if (ComponenteCombate) return ComponenteCombate->VidaMaxima;
-    return 1.0f;
-}
+float AGalagaModificadoMacPawn::GetVidaActual() const { return ComponenteCombate ? ComponenteCombate->VidaActual : 0.0f; }
+float AGalagaModificadoMacPawn::GetVidaMaxima() const { return ComponenteCombate ? ComponenteCombate->VidaMaxima : 1.0f; }
 
 // ========== BARRAS DE VIDA EN HUD ==========
-void AGalagaModificadoMacPawn::UpdateHealthBars()
+void AGalagaModificadoMacPawn::UpdateHealthBars(float DeltaSeconds)
 {
     TArray<AActor*> EnemigosActuales;
+    for (TActorIterator<ANaveComando> It(GetWorld()); It; ++It) if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
+    for (TActorIterator<ACeldaEnergia> It(GetWorld()); It; ++It) if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
 
-    for (TActorIterator<ANaveComando> It(GetWorld()); It; ++It)
-        if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
-
-    for (TActorIterator<ACeldaEnergia> It(GetWorld()); It; ++It)
-        if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
-
-    // Eliminar widgets de enemigos muertos
     TArray<AActor*> ParaEliminar;
-    for (auto& Par : EnemyHealthWidgets)
-    {
-        if (!Par.Key || Par.Key->IsPendingKill() || !EnemigosActuales.Contains(Par.Key))
-        {
-            if (Par.Value) Par.Value->RemoveFromParent();
-            ParaEliminar.Add(Par.Key);
-        }
-    }
+    for (auto& Par : EnemyHealthWidgets) if (!Par.Key || Par.Key->IsPendingKill() || !EnemigosActuales.Contains(Par.Key)) { if (Par.Value) Par.Value->RemoveFromParent(); ParaEliminar.Add(Par.Key); }
     for (AActor* Key : ParaEliminar) EnemyHealthWidgets.Remove(Key);
 
-    // Crear widgets para nuevos enemigos
-    for (AActor* Enemy : EnemigosActuales)
-    {
-        if (!EnemyHealthWidgets.Contains(Enemy))
-        {
-            UUserWidget* Widget = CreateHealthBarForEnemy(Enemy);
-            EnemyHealthWidgets.Add(Enemy, Widget);
-        }
-    }
+    for (AActor* Enemy : EnemigosActuales) if (!EnemyHealthWidgets.Contains(Enemy)) { UUserWidget* Widget = CreateHealthBarForEnemy(Enemy); EnemyHealthWidgets.Add(Enemy, Widget); }
 
-    // Panel de lista
     UPanelWidget* ListaPanel = nullptr;
-    if (EnemyListWidget)
-        ListaPanel = Cast<UPanelWidget>(EnemyListWidget->GetWidgetFromName(TEXT("EnemyListPanel")));
+    if (EnemyListWidget) ListaPanel = Cast<UPanelWidget>(EnemyListWidget->GetWidgetFromName(TEXT("EnemyListPanel")));
 
     if (ListaPanel)
     {
         EnemigosActuales.Sort([](const AActor& A, const AActor& B) {
             if (A.IsA(ANaveComando::StaticClass()) && !B.IsA(ANaveComando::StaticClass())) return true;
-            if (!A.IsA(ANaveComando::StaticClass()) && B.IsA(ANaveComando::StaticClass())) return false;
             return false;
             });
-
         ListaPanel->ClearChildren();
         for (AActor* Enemy : EnemigosActuales)
         {
@@ -401,28 +503,16 @@ void AGalagaModificadoMacPawn::UpdateHealthBars()
             if (Widget)
             {
                 ListaPanel->AddChild(Widget);
-                if (UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Widget->Slot))
-                {
-                    Slot->SetPadding(FMargin(0, 0, 0, 10)); // 10 píxeles de separación inferior
-                }
+                if (UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Widget->Slot)) Slot->SetPadding(FMargin(0, 0, 0, 10));
                 float Percent = 1.0f;
-                if (ANaveComando* N = Cast<ANaveComando>(Enemy))
-                {
-                    UComponenteCombate* Comp = N->GetComponenteCombate();
-                    if (Comp) Percent = Comp->VidaActual / Comp->VidaMaxima;
-                }
-                else if (ACeldaEnergia* C = Cast<ACeldaEnergia>(Enemy))
-                {
-                    Percent = C->GetVida() / C->GetVidaMaxima();
-                }
-
+                if (ANaveComando* N = Cast<ANaveComando>(Enemy)) { UComponenteCombate* Comp = N->GetComponenteCombate(); if (Comp) Percent = Comp->VidaActual / Comp->VidaMaxima; }
+                else if (ACeldaEnergia* C = Cast<ACeldaEnergia>(Enemy)) Percent = C->GetVida() / C->GetVidaMaxima();
                 UProgressBar* Bar = Cast<UProgressBar>(Widget->GetWidgetFromName(TEXT("ProgressBar_0")));
-                if (Bar) Bar->SetPercent(Percent);
+                if (Bar) { float Cur = Bar->Percent; float NewP = FMath::FInterpTo(Cur, Percent, DeltaSeconds, 6.0f); Bar->SetPercent(NewP); }
             }
         }
     }
 
-    // Barra del jefe (centro superior)
     if (BossHealthWidget)
     {
         ABossEstatico* Boss = nullptr;
@@ -433,8 +523,8 @@ void AGalagaModificadoMacPawn::UpdateHealthBars()
             if (Boss && !Boss->IsPendingKill())
             {
                 float Percent = (Boss->VidaMaxima > 0.0f) ? (Boss->VidaJefe / Boss->VidaMaxima) : 0.0f;
-                Bar->SetPercent(Percent);
-                Bar->SetVisibility(ESlateVisibility::Visible);
+                float Cur = Bar->Percent; float NewP = FMath::FInterpTo(Cur, Percent, DeltaSeconds, 6.0f);
+                Bar->SetPercent(NewP); Bar->SetVisibility(ESlateVisibility::Visible);
             }
             else Bar->SetVisibility(ESlateVisibility::Hidden);
         }
@@ -448,7 +538,156 @@ UUserWidget* AGalagaModificadoMacPawn::CreateHealthBarForEnemy(AActor* Enemy)
 }
 // ===========================================
 
-// --- PATRÓN STATE ---
+// ========== PAUSA ==========
+void AGalagaModificadoMacPawn::OnPauseButtonPressed()
+{
+    if (bMuerto) return;
+    if (bIsPaused) { ResumeGame(); return; }
+
+    bIsPaused = true;
+    UGameplayStatics::SetGamePaused(GetWorld(), true);
+
+    if (PauseMenuClass && !PauseMenuWidget)
+    {
+        PauseMenuWidget = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
+        if (PauseMenuWidget)
+        {
+            PauseMenuWidget->AddToViewport(200);
+            APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+            if (PC)
+            {
+                FInputModeGameAndUI InputMode;
+                InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                InputMode.SetWidgetToFocus(PauseMenuWidget->TakeWidget());
+                PC->SetInputMode(InputMode);
+                PC->bShowMouseCursor = true;
+            }
+        }
+    }
+}
+
+void AGalagaModificadoMacPawn::ResumeGame()
+{
+    if (!bIsPaused) return;
+    bIsPaused = false;
+    UGameplayStatics::SetGamePaused(GetWorld(), false);
+    if (PauseMenuWidget) { PauseMenuWidget->RemoveFromParent(); PauseMenuWidget = nullptr; }
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (PC) { PC->SetInputMode(FInputModeGameOnly()); PC->bShowMouseCursor = false; }
+}
+
+void AGalagaModificadoMacPawn::ReturnToMainMenuFromPause()
+{
+    UGameplayStatics::SetGamePaused(GetWorld(), false);
+    if (UGalagaGameInstance* GI = Cast<UGalagaGameInstance>(GetGameInstance())) { GI->ReturnToMainMenu(); return; }
+    UGameplayStatics::OpenLevel(GetWorld(), TEXT("MainMenuLevel"));
+}
+
+void AGalagaModificadoMacPawn::PauseResumeGame() { ResumeGame(); }
+
+void AGalagaModificadoMacPawn::PauseReturnToMainMenu() { ReturnToMainMenuFromPause(); }
+
+// --- LÓGICA DE MOVIMIENTO ---
+void AGalagaModificadoMacPawn::IniciarCorrer()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking) {
+        MoveSpeed = 600.0f; // Duplicamos velocidad base
+        GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+    }
+}
+
+void AGalagaModificadoMacPawn::DetenerCorrer()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking) {
+        MoveSpeed = 300.0f; // Volvemos a caminar normal
+        GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
+    }
+}
+
+void AGalagaModificadoMacPawn::EjecutarSalto()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking) {
+        Jump(); // ACharacter ya tiene la lógica de físicas para saltar
+    }
+}
+
+// --- LÓGICA DE ATAQUES EXTRA ---
+void AGalagaModificadoMacPawn::AtaqueSecundario()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking && RobotMeshComponent && MontajeAtaqueCargado)
+    {
+        // 1. Reproducir la animación
+        RobotMeshComponent->GetAnimInstance()->Montage_Play(MontajeAtaqueCargado);
+
+        // 2. Lógica de Daño en Área (Una gran explosión circular alrededor del robot)
+        UWorld* const World = GetWorld();
+        if (World != nullptr)
+        {
+            FVector CentroExplosion = GetActorLocation(); // El centro eres tú
+            float RadioExplosion = 600.0f; // Un área mucho más grande
+            float DanioCargado = 75.0f; // Triple daño que el ataque normal
+
+            TArray<FOverlapResult> EnemigosGolpeados;
+            FCollisionQueryParams ParametrosColision;
+            ParametrosColision.AddIgnoredActor(this);
+
+            bool bHuboGolpe = World->OverlapMultiByChannel(
+                EnemigosGolpeados, CentroExplosion, FQuat::Identity,
+                ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(RadioExplosion), ParametrosColision
+            );
+
+            if (bHuboGolpe)
+            {
+                for (FOverlapResult& Overlap : EnemigosGolpeados)
+                {
+                    AActor* ActorGolpeado = Overlap.GetActor();
+                    if (ActorGolpeado != nullptr)
+                    {
+                        UComponenteCombate* CompEnemigo = ActorGolpeado->FindComponentByClass<UComponenteCombate>();
+                        if (CompEnemigo != nullptr && CompEnemigo->Faccion == FName("Enemigo"))
+                        {
+                            UGameplayStatics::ApplyDamage(ActorGolpeado, DanioCargado * MultiplicadorDanio, GetController(), this, UDamageType::StaticClass());
+                        }
+                    }
+                }
+            }
+            GEngine->AddOnScreenDebugMessage(-1, 3.f, FColor::Orange, TEXT("¡EXPLOSIÓN CARGADA!"));
+        }
+    }
+}
+
+void AGalagaModificadoMacPawn::DisparoEspecial()
+{
+    if (GetCharacterMovement()->MovementMode == MOVE_Walking && RobotMeshComponent && MontajeDisparoQ)
+    {
+        // 1. Reproducir la animación
+        RobotMeshComponent->GetAnimInstance()->Montage_Play(MontajeDisparoQ);
+
+        // 2. Lógica de Disparo (Igual que la nave)
+        UWorld* const World = GetWorld();
+        if (World != nullptr)
+        {
+            // Disparamos hacia donde está mirando el robot
+            FRotator FireRotation = GetActorRotation();
+
+            // Empujamos el proyectil un poco hacia adelante (100 unidades) para que no nazca dentro de ti
+            FVector SpawnLocation = GetActorLocation() + FireRotation.RotateVector(FVector(100.f, 0.f, 0.f));
+
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.Owner = this;
+
+            // Generar el proyectil
+            World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
+
+            if (FireSound != nullptr) {
+                UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+            }
+        }
+    }
+}
+// ===========================
+
+// --- PATRÃ“N STATE ---
 void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
 {
     NaveContexto->ConvertirEnRobot();
@@ -478,6 +717,28 @@ void FEstadoNaveVoladora::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto,
 
 void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
+    // =========================================================================
+    // PARTE 1: LAS ANIMACIONES (El 20% de probabilidad)
+    // =========================================================================
+    if (NaveContexto->GetRobotMeshComponent() && NaveContexto->GetRobotMeshComponent()->GetAnimInstance())
+    {
+        // Tiramos los dados: del 1 al 100. Si cae 20 o menos, es ataque raro.
+        bool bEsAtaqueRaro = FMath::RandRange(1, 100) <= 20;
+
+        if (bEsAtaqueRaro && NaveContexto->MontajeAtaqueRaro)
+        {
+            NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueRaro);
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Purple, TEXT("¡ATAQUE RARO ACTIVADO!"));
+        }
+        else if (NaveContexto->MontajeAtaqueNormal)
+        {
+            NaveContexto->GetRobotMeshComponent()->GetAnimInstance()->Montage_Play(NaveContexto->MontajeAtaqueNormal);
+        }
+    }
+
+    // =========================================================================
+    // PARTE 2: EL DAÑO (Tu código exacto de la esfera de colisión)
+    // =========================================================================
     UWorld* const World = NaveContexto->GetWorld();
     if (World != nullptr)
     {
@@ -487,7 +748,7 @@ void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FV
 
         TArray<FOverlapResult> EnemigosGolpeados;
         FCollisionQueryParams ParametrosColision;
-        ParametrosColision.AddIgnoredActor(NaveContexto);
+        ParametrosColision.AddIgnoredActor(NaveContexto); // No nos pegamos a nosotros mismos
 
         bool bHuboGolpe = World->OverlapMultiByChannel(
             EnemigosGolpeados,
@@ -518,7 +779,7 @@ void FEstadoNaveRobot::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FV
                     }
                 }
             }
-            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("¡CORTE FRONTAL!"));
+            GEngine->AddOnScreenDebugMessage(-1, 2.f, FColor::Cyan, TEXT("Â¡CORTE FRONTAL!"));
         }
     }
 }
@@ -529,7 +790,7 @@ void FEstadoNaveRobot::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveCont
     NaveContexto->CambiarEstado(new FEstadoNaveVoladora());
 }
 
-// --- PATRÓN DECORATOR ---
+// --- PATRÃ“N DECORATOR ---
 FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
     if (Contexto && Contexto->ComponenteCombate) {
@@ -539,10 +800,7 @@ FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGal
     }
 }
 
-FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
-{
-    Contexto->TiempoDisparoCuadruple = 10.0f;
-}
+FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->TiempoDisparoCuadruple = 10.0f; }
 
 void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
@@ -552,15 +810,12 @@ void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCont
         if (World != nullptr)
         {
             const FRotator FireRotation = FireDirection.Rotation();
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = NaveContexto;
-
+            FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             float Sep1 = 15.0f, Sep2 = 45.0f;
             FVector Izq1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep1, NaveContexto->GunOffset.Z));
             FVector Der1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep1, NaveContexto->GunOffset.Z));
             FVector Izq2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep2, NaveContexto->GunOffset.Z));
             FVector Der2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep2, NaveContexto->GunOffset.Z));
-
             World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
             World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
             World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
@@ -570,10 +825,7 @@ void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCont
     else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
 }
 
-FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
-{
-    Contexto->BombasRacimoRestantes += 6;
-}
+FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->BombasRacimoRestantes += 6; }
 
 void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
@@ -583,16 +835,9 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
         if (World != nullptr)
         {
             const FRotator FireRotation = FireDirection.Rotation();
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = NaveContexto;
+            FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             NaveContexto->BombasRacimoRestantes--;
-
-            for (int i = 0; i < 8; i++)
-            {
-                FRotator RacimoRot = FireRotation;
-                RacimoRot.Yaw += (45.0f * i);
-                World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
-            }
+            for (int i = 0; i < 8; i++) { FRotator RacimoRot = FireRotation; RacimoRot.Yaw += (45.0f * i); World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams); }
         }
     }
     else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
@@ -601,23 +846,16 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
 FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
     Contexto->VelocidadOriginalNave = Contexto->MoveSpeed;
-    Contexto->MoveSpeed *= 2.0f;
-    Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
-    Contexto->MultiplicadorDanio = 1.5f;
-    Contexto->TiempoBuffoNave = 8.0f;
+    Contexto->MoveSpeed *= 2.0f; Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
+    Contexto->MultiplicadorDanio = 1.5f; Contexto->TiempoBuffoNave = 8.0f;
 }
 
 FDecoradorVelocidadDash::FDecoradorVelocidadDash(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
-    Contexto->MoveSpeed = 800.0f;
-    Contexto->GetCharacterMovement()->MaxWalkSpeed = Contexto->MoveSpeed;
-    Contexto->TiempoBuffoRobot = 10.0f;
+    Contexto->MoveSpeed = 800.0f; Contexto->GetCharacterMovement()->MaxWalkSpeed = Contexto->MoveSpeed; Contexto->TiempoBuffoRobot = 10.0f;
 }
 
-FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
-{
-    Contexto->TiempoCortesDistancia = 12.0f;
-}
+FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->TiempoCortesDistancia = 12.0f; }
 
 void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
@@ -627,8 +865,7 @@ void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCon
         if (World != nullptr)
         {
             const FRotator FireRotation = FireDirection.Rotation();
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = NaveContexto;
+            FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
             World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
         }
@@ -646,6 +883,5 @@ FDecoradorRecuperacionRobot::FDecoradorRecuperacionRobot(IEstadoNave* Estado, AG
 
 FDecoradorInmunidad::FDecoradorInmunidad(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
-    Contexto->TiempoInmunidad = 8.0f;
-    Contexto->MultiplicadorDanio = 2.0f;
+    Contexto->TiempoInmunidad = 8.0f; Contexto->MultiplicadorDanio = 2.0f;
 }

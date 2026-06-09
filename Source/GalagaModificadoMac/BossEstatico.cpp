@@ -11,6 +11,9 @@
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
 #include "TimerManager.h"
+#include "FabricaInvulnerable.h"
+#include "GalagaModificadoMacGameMode.h"
+#include "BossAttackBuilder.h"
 
 ABossEstatico::ABossEstatico()
 {
@@ -90,7 +93,7 @@ ABossEstatico::ABossEstatico()
     IntervaloRisa = 15.0f;
     EscudoEffectScale = 40.0f;
     ExplosionEscudoScale = 2.0f;
-    ExplosionMuerteScale = 30.0f;   // Explosión gigante acorde al jefe
+    ExplosionMuerteScale = 30.0f;
 }
 
 void ABossEstatico::BeginPlay()
@@ -131,6 +134,11 @@ void ABossEstatico::EndPlay(const EEndPlayReason::Type EndPlayReason)
         delete EstrategiaActual;
         EstrategiaActual = nullptr;
     }
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Lluvia);
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
+    }
 }
 
 void ABossEstatico::Tick(float DeltaTime)
@@ -165,6 +173,9 @@ float ABossEstatico::TakeDamage(float DamageAmount, FDamageEvent const& DamageEv
         MultiplicadorDano = 1.5f;
         MultiplicadorVelocidad = 1.5f;
         TiempoAcumuladoCambio = 0.0f;
+
+        // Iniciar la lluvia de proyectiles (solo una vez, al entrar en furia por vida)
+        IniciarLluvia();
     }
 
     if (VidaJefe <= 0) Destroy();
@@ -175,6 +186,40 @@ void ABossEstatico::NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio)
 {
     CeldasActivas--;
 
+    // --- Spawn de un Cuartel Invulnerable a ras de suelo ---
+    if (AGalagaModificadoMacGameMode* GM = GetWorld()->GetAuthGameMode<AGalagaModificadoMacGameMode>())
+    {
+        if (GM->ListaFabricas.Num() < 3)
+        {
+            FActorSpawnParameters SpawnParams;
+            SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+            float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
+            FVector PosicionSuelo = GetActorLocation() - FVector(0.0f, 0.0f, HalfHeight);
+
+            FVector PosicionFabrica = PosicionSuelo + FVector(
+                FMath::RandRange(-20000.0f, 20000.0f),
+                FMath::RandRange(-20000.0f, 20000.0f),
+                -1500.0f
+            );
+
+            AFabricaInvulnerable* Cuartel = GetWorld()->SpawnActor<AFabricaInvulnerable>(
+                AFabricaInvulnerable::StaticClass(),
+                PosicionFabrica,
+                FRotator::ZeroRotator,
+                SpawnParams
+                );
+
+            if (Cuartel)
+            {
+                GM->ListaFabricas.Add(Cuartel);
+                GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange,
+                    FString::Printf(TEXT("¡Cuartel invulnerable activado! (%d/3)"), GM->ListaFabricas.Num()));
+            }
+        }
+    }
+
+    // --- Lógica original de cambio de estrategia, escudo, música ---
     if (!bFuriaCeldas)
     {
         if (CeldasActivas == 2) CambiarEstrategia(new FAtaqueOndaStrategy());
@@ -225,7 +270,12 @@ void ABossEstatico::CambiarEstrategia(IAttackStrategy* NuevaEstrategia)
 
 void ABossEstatico::Destroyed()
 {
-    // Explosión de muerte desde la base del jefe
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Lluvia);
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
+    }
+
     if (ExplosionMuerte)
     {
         float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
@@ -259,4 +309,27 @@ void ABossEstatico::StopLaugh()
 {
     if (GetWorld()) GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Risa);
     if (AudioComponent && AudioComponent->IsPlaying()) AudioComponent->Stop();
+}
+
+// ========== LLUVIA DE PROYECTILES (furia por vida) ==========
+void ABossEstatico::IniciarLluvia()
+{
+    // Solo si la furia por vida está activa y el jefe no está siendo destruido
+    if (!bFuriaVida || IntervaloLluvia <= 0.0f || IsPendingKill()) return;
+
+    EjecutarLluvia();
+    if (GetWorld())
+    {
+        GetWorld()->GetTimerManager().SetTimer(TimerHandle_Lluvia, this, &ABossEstatico::EjecutarLluvia, IntervaloLluvia, true);
+    }
+}
+
+void ABossEstatico::EjecutarLluvia()
+{
+    // No ejecutar si el jefe ya ha muerto o está siendo destruido
+    if (!bFuriaVida || IsPendingKill() || !GetWorld()) return;
+
+    BossAttackBuilder Builder(GetWorld(), this);
+    Builder.SetDano(150.0f).SetVelocidad(1000.0f).SetEscala(2.0f);
+    Builder.ConstruirLluviaTechada(GetActorLocation(), 10000.0f, 200, 3000.0f);
 }
