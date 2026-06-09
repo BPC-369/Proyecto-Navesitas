@@ -17,8 +17,9 @@
 #include "GameFramework/PlayerController.h"
 #include "BombaRacimo.h"
 #include "GalagaModificadoMacGameMode.h"
+#include "GalagaGameInstance.h"
 
-// Para las barras de vida
+// HUD
 #include "BossEstatico.h"
 #include "NaveComando.h"
 #include "CeldasEnergia.h"
@@ -27,6 +28,7 @@
 #include "Components/PanelWidget.h"
 #include "EngineUtils.h"
 #include "Components/VerticalBoxSlot.h"
+#include "Components/PrimitiveComponent.h"
 
 const FName AGalagaModificadoMacPawn::MoveForwardBinding("MoveForward");
 const FName AGalagaModificadoMacPawn::MoveRightBinding("MoveRight");
@@ -71,8 +73,8 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
     ComponenteCombate = CreateDefaultSubobject<UComponenteCombate>(TEXT("EstadisticasCombate"));
 
-    MoveSpeed = 1700.0f;
-    VelocidadOriginalNave = 1700.0f;
+    MoveSpeed = 2500.0f;
+    VelocidadOriginalNave = 2500.0f;
 
     GunOffset = FVector(130.f, 0.f, 0.f);
     FireRate = 0.1f;
@@ -103,7 +105,7 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     bMuerto = false;
     WidgetGameOverClass = nullptr;
 
-    // Carga de widgets para las barras de vida y crosshair
+    // Carga de widgets para las barras de vida, crosshair y pausa
     static ConstructorHelpers::FClassFinder<UUserWidget> HealthBarBP(TEXT("/Game/Blueprints/WBP_EnemyHealthBar"));
     if (HealthBarBP.Succeeded()) EnemyHealthBarClass = HealthBarBP.Class;
 
@@ -115,6 +117,9 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
 
     static ConstructorHelpers::FClassFinder<UUserWidget> CrosshairBP(TEXT("/Game/Blueprints/WBP_Crosshair"));
     if (CrosshairBP.Succeeded()) CrosshairClass = CrosshairBP.Class;
+
+    static ConstructorHelpers::FClassFinder<UUserWidget> PauseMenuBP(TEXT("/Game/Blueprints/WBP_PauseMenu"));
+    if (PauseMenuBP.Succeeded()) PauseMenuClass = PauseMenuBP.Class;
 }
 
 void AGalagaModificadoMacPawn::BeginPlay()
@@ -124,28 +129,22 @@ void AGalagaModificadoMacPawn::BeginPlay()
         ShipMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
     ConvertirEnNave();
 
-    // Crear widget contenedor de la lista de enemigos (lateral izquierdo)
     if (EnemyListClass)
     {
         EnemyListWidget = CreateWidget<UUserWidget>(GetWorld(), EnemyListClass);
-        if (EnemyListWidget)
-            EnemyListWidget->AddToViewport(10); // ZOrder bajo
+        if (EnemyListWidget) EnemyListWidget->AddToViewport(10);
     }
 
-    // Crear widget de la barra del jefe (centro superior)
     if (BossHealthClass)
     {
         BossHealthWidget = CreateWidget<UUserWidget>(GetWorld(), BossHealthClass);
-        if (BossHealthWidget)
-            BossHealthWidget->AddToViewport();
+        if (BossHealthWidget) BossHealthWidget->AddToViewport();
     }
 
-    // Crear y mostrar el crosshair
     if (CrosshairClass)
     {
-        UUserWidget* CrosshairWidget = CreateWidget<UUserWidget>(GetWorld(), CrosshairClass);
-        if (CrosshairWidget)
-            CrosshairWidget->AddToViewport(100); // ZOrder alto, siempre visible
+        CrosshairWidget = CreateWidget<UUserWidget>(GetWorld(), CrosshairClass);
+        if (CrosshairWidget) CrosshairWidget->AddToViewport(100);
     }
 }
 
@@ -164,11 +163,13 @@ void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* 
     PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
     PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::EmpezarDisparo);
     PlayerInputComponent->BindAction("Disparar", IE_Released, this, &AGalagaModificadoMacPawn::DetenerDisparo);
+    PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &AGalagaModificadoMacPawn::OnPauseButtonPressed);
 }
 
 void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
 {
     Super::Tick(DeltaSeconds);
+    if (bIsPaused) return;
 
     const float ForwardValue = GetInputAxisValue(MoveForwardBinding);
     const float RightValue = GetInputAxisValue(MoveRightBinding);
@@ -187,63 +188,63 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
     AddMovementInput(GetActorRightVector(), RightValue);
     AddMovementInput(GetActorUpVector(), UpValue);
 
-    if (bEstaDisparando && bCanFire)
-        FireShot(GetActorForwardVector());
+    if (bEstaDisparando && bCanFire) FireShot(GetActorForwardVector());
 
     if (TiempoDisparoCuadruple > 0.0f) TiempoDisparoCuadruple -= DeltaSeconds;
     if (TiempoCortesDistancia > 0.0f) TiempoCortesDistancia -= DeltaSeconds;
 
-    if (TiempoInmunidad > 0.0f)
-    {
-        TiempoInmunidad -= DeltaSeconds;
-        if (TiempoInmunidad <= 0.0f) MultiplicadorDanio = 1.0f;
-    }
+    if (TiempoInmunidad > 0.0f) { TiempoInmunidad -= DeltaSeconds; if (TiempoInmunidad <= 0.0f) MultiplicadorDanio = 1.0f; }
+    if (TiempoBuffoNave > 0.0f) { TiempoBuffoNave -= DeltaSeconds; if (TiempoBuffoNave <= 0.0f) { MoveSpeed = VelocidadOriginalNave; GetCharacterMovement()->MaxFlySpeed = MoveSpeed; MultiplicadorDanio = 1.0f; } }
+    if (TiempoBuffoRobot > 0.0f) { TiempoBuffoRobot -= DeltaSeconds; if (TiempoBuffoRobot <= 0.0f) { MoveSpeed = 300.0f; GetCharacterMovement()->MaxWalkSpeed = MoveSpeed; } }
 
-    if (TiempoBuffoNave > 0.0f)
+    UpdateHealthBars(DeltaSeconds);
+
+    // Dynamic crosshair
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (PC && CrosshairWidget)
     {
-        TiempoBuffoNave -= DeltaSeconds;
-        if (TiempoBuffoNave <= 0.0f)
+        FVector CamLoc; FRotator CamRot;
+        PC->GetPlayerViewPoint(CamLoc, CamRot);
+        FVector Start = CamLoc;
+        FVector End = Start + (CamRot.Vector() * 5000.0f);
+        FHitResult Hit;
+        FCollisionQueryParams Params;
+        Params.AddIgnoredActor(this);
+        bool bHit = GetWorld()->LineTraceSingleByChannel(Hit, Start, End, ECC_Pawn, Params);
+        bool bFound = false;
+        if (bHit && Hit.GetActor())
         {
-            MoveSpeed = VelocidadOriginalNave;
-            GetCharacterMovement()->MaxFlySpeed = MoveSpeed;
-            MultiplicadorDanio = 1.0f;
+            UComponenteCombate* Comp = Hit.GetActor()->FindComponentByClass<UComponenteCombate>();
+            if (Comp && Comp->Faccion == FName("Enemigo")) bFound = true;
+        }
+        if (bFound != bEnemyTargeted)
+        {
+            bEnemyTargeted = bFound;
+            UFunction* Func = CrosshairWidget->FindFunction(FName("SetTargeted"));
+            if (Func)
+            {
+                struct FParams { bool bTargeted; };
+                FParams ParamsStruct;
+                ParamsStruct.bTargeted = bFound;
+                CrosshairWidget->ProcessEvent(Func, &ParamsStruct);
+            }
         }
     }
-
-    if (TiempoBuffoRobot > 0.0f)
-    {
-        TiempoBuffoRobot -= DeltaSeconds;
-        if (TiempoBuffoRobot <= 0.0f)
-        {
-            MoveSpeed = 300.0f;
-            GetCharacterMovement()->MaxWalkSpeed = MoveSpeed;
-        }
-    }
-
-    UpdateHealthBars();
 }
 
 void AGalagaModificadoMacPawn::FireShot(FVector FireDirection)
 {
-    if (EstadoActual != nullptr)
-        EstadoActual->EjecutarAtaque(this, FireDirection);
-
+    if (EstadoActual != nullptr) EstadoActual->EjecutarAtaque(this, FireDirection);
     bCanFire = false;
     GetWorld()->GetTimerManager().SetTimer(TimerHandle_ShotTimerExpired, this, &AGalagaModificadoMacPawn::ShotTimerExpired, FireRate);
-
-    if (FireSound != nullptr)
-        UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
+    if (FireSound != nullptr) UGameplayStatics::PlaySoundAtLocation(this, FireSound, GetActorLocation());
 }
 
-void AGalagaModificadoMacPawn::ShotTimerExpired()
-{
-    bCanFire = true;
-}
+void AGalagaModificadoMacPawn::ShotTimerExpired() { bCanFire = true; }
 
 void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
 {
     Super::NotifyActorBeginOverlap(OtherActor);
-
     if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Walking)
     {
         if (OtherActor != nullptr && OtherActor != this)
@@ -259,15 +260,8 @@ void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
     }
 }
 
-void AGalagaModificadoMacPawn::EmpezarDisparo()
-{
-    bEstaDisparando = true;
-}
-
-void AGalagaModificadoMacPawn::DetenerDisparo()
-{
-    bEstaDisparando = false;
-}
+void AGalagaModificadoMacPawn::EmpezarDisparo() { bEstaDisparando = true; }
+void AGalagaModificadoMacPawn::DetenerDisparo() { bEstaDisparando = false; }
 
 void AGalagaModificadoMacPawn::CambiarEstado(IEstadoNave* NuevoEstado)
 {
@@ -295,105 +289,61 @@ void AGalagaModificadoMacPawn::Transformar()
 float AGalagaModificadoMacPawn::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
     if (TiempoInmunidad > 0.0f) return 0.0f;
-
     float DanioReal = Super::TakeDamage(DamageAmount, DamageEvent, EventInstigator, DamageCauser);
-
     if (ComponenteCombate != nullptr)
     {
         DanioReal = ComponenteCombate->HacerDamage(DanioReal, DamageEvent, EventInstigator, DamageCauser);
-        if (!bMuerto && ComponenteCombate->VidaActual <= 0.0f)
-        {
-            bMuerto = true;
-            ManejarMuerte();
-        }
+        if (!bMuerto && ComponenteCombate->VidaActual <= 0.0f) { bMuerto = true; ManejarMuerte(); }
     }
-
     return DanioReal;
 }
 
 void AGalagaModificadoMacPawn::ManejarMuerte()
 {
+    for (auto& Par : EnemyHealthWidgets) { if (Par.Value) Par.Value->RemoveFromParent(); }
+    EnemyHealthWidgets.Empty();
+    if (EnemyListWidget) { EnemyListWidget->RemoveFromParent(); EnemyListWidget = nullptr; }
+    if (BossHealthWidget) { BossHealthWidget->RemoveFromParent(); BossHealthWidget = nullptr; }
+    if (CrosshairWidget) { CrosshairWidget->RemoveFromParent(); CrosshairWidget = nullptr; }
+    if (PauseMenuWidget) { PauseMenuWidget->RemoveFromParent(); PauseMenuWidget = nullptr; }
+
     AGalagaModificadoMacGameMode* GM = Cast<AGalagaModificadoMacGameMode>(GetWorld()->GetAuthGameMode());
     if (GM) GM->DetenerMusica();
 
     UGameplayStatics::SetGamePaused(GetWorld(), true);
 
     APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
-    if (PC)
-    {
-        FInputModeUIOnly InputMode;
-        InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
-        PC->SetInputMode(InputMode);
-        PC->bShowMouseCursor = true;
-    }
+    if (PC) { FInputModeUIOnly InputMode; InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock); PC->SetInputMode(InputMode); PC->bShowMouseCursor = true; }
 
     OnDeathEvent();
-
-    if (WidgetGameOverClass)
-    {
-        UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(GetWorld(), WidgetGameOverClass);
-        if (GameOverWidget) GameOverWidget->AddToViewport();
-    }
+    if (WidgetGameOverClass) { UUserWidget* GameOverWidget = CreateWidget<UUserWidget>(GetWorld(), WidgetGameOverClass); if (GameOverWidget) GameOverWidget->AddToViewport(); }
 }
 
-float AGalagaModificadoMacPawn::GetVidaActual() const
-{
-    if (ComponenteCombate) return ComponenteCombate->VidaActual;
-    return 0.0f;
-}
-
-float AGalagaModificadoMacPawn::GetVidaMaxima() const
-{
-    if (ComponenteCombate) return ComponenteCombate->VidaMaxima;
-    return 1.0f;
-}
+float AGalagaModificadoMacPawn::GetVidaActual() const { return ComponenteCombate ? ComponenteCombate->VidaActual : 0.0f; }
+float AGalagaModificadoMacPawn::GetVidaMaxima() const { return ComponenteCombate ? ComponenteCombate->VidaMaxima : 1.0f; }
 
 // ========== BARRAS DE VIDA EN HUD ==========
-void AGalagaModificadoMacPawn::UpdateHealthBars()
+void AGalagaModificadoMacPawn::UpdateHealthBars(float DeltaSeconds)
 {
     TArray<AActor*> EnemigosActuales;
+    for (TActorIterator<ANaveComando> It(GetWorld()); It; ++It) if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
+    for (TActorIterator<ACeldaEnergia> It(GetWorld()); It; ++It) if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
 
-    for (TActorIterator<ANaveComando> It(GetWorld()); It; ++It)
-        if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
-
-    for (TActorIterator<ACeldaEnergia> It(GetWorld()); It; ++It)
-        if (*It && !(*It)->IsPendingKill()) EnemigosActuales.Add(*It);
-
-    // Eliminar widgets de enemigos muertos
     TArray<AActor*> ParaEliminar;
-    for (auto& Par : EnemyHealthWidgets)
-    {
-        if (!Par.Key || Par.Key->IsPendingKill() || !EnemigosActuales.Contains(Par.Key))
-        {
-            if (Par.Value) Par.Value->RemoveFromParent();
-            ParaEliminar.Add(Par.Key);
-        }
-    }
+    for (auto& Par : EnemyHealthWidgets) if (!Par.Key || Par.Key->IsPendingKill() || !EnemigosActuales.Contains(Par.Key)) { if (Par.Value) Par.Value->RemoveFromParent(); ParaEliminar.Add(Par.Key); }
     for (AActor* Key : ParaEliminar) EnemyHealthWidgets.Remove(Key);
 
-    // Crear widgets para nuevos enemigos
-    for (AActor* Enemy : EnemigosActuales)
-    {
-        if (!EnemyHealthWidgets.Contains(Enemy))
-        {
-            UUserWidget* Widget = CreateHealthBarForEnemy(Enemy);
-            EnemyHealthWidgets.Add(Enemy, Widget);
-        }
-    }
+    for (AActor* Enemy : EnemigosActuales) if (!EnemyHealthWidgets.Contains(Enemy)) { UUserWidget* Widget = CreateHealthBarForEnemy(Enemy); EnemyHealthWidgets.Add(Enemy, Widget); }
 
-    // Panel de lista
     UPanelWidget* ListaPanel = nullptr;
-    if (EnemyListWidget)
-        ListaPanel = Cast<UPanelWidget>(EnemyListWidget->GetWidgetFromName(TEXT("EnemyListPanel")));
+    if (EnemyListWidget) ListaPanel = Cast<UPanelWidget>(EnemyListWidget->GetWidgetFromName(TEXT("EnemyListPanel")));
 
     if (ListaPanel)
     {
         EnemigosActuales.Sort([](const AActor& A, const AActor& B) {
             if (A.IsA(ANaveComando::StaticClass()) && !B.IsA(ANaveComando::StaticClass())) return true;
-            if (!A.IsA(ANaveComando::StaticClass()) && B.IsA(ANaveComando::StaticClass())) return false;
             return false;
             });
-
         ListaPanel->ClearChildren();
         for (AActor* Enemy : EnemigosActuales)
         {
@@ -401,28 +351,16 @@ void AGalagaModificadoMacPawn::UpdateHealthBars()
             if (Widget)
             {
                 ListaPanel->AddChild(Widget);
-                if (UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Widget->Slot))
-                {
-                    Slot->SetPadding(FMargin(0, 0, 0, 10)); // 10 píxeles de separación inferior
-                }
+                if (UVerticalBoxSlot* Slot = Cast<UVerticalBoxSlot>(Widget->Slot)) Slot->SetPadding(FMargin(0, 0, 0, 10));
                 float Percent = 1.0f;
-                if (ANaveComando* N = Cast<ANaveComando>(Enemy))
-                {
-                    UComponenteCombate* Comp = N->GetComponenteCombate();
-                    if (Comp) Percent = Comp->VidaActual / Comp->VidaMaxima;
-                }
-                else if (ACeldaEnergia* C = Cast<ACeldaEnergia>(Enemy))
-                {
-                    Percent = C->GetVida() / C->GetVidaMaxima();
-                }
-
+                if (ANaveComando* N = Cast<ANaveComando>(Enemy)) { UComponenteCombate* Comp = N->GetComponenteCombate(); if (Comp) Percent = Comp->VidaActual / Comp->VidaMaxima; }
+                else if (ACeldaEnergia* C = Cast<ACeldaEnergia>(Enemy)) Percent = C->GetVida() / C->GetVidaMaxima();
                 UProgressBar* Bar = Cast<UProgressBar>(Widget->GetWidgetFromName(TEXT("ProgressBar_0")));
-                if (Bar) Bar->SetPercent(Percent);
+                if (Bar) { float Cur = Bar->Percent; float NewP = FMath::FInterpTo(Cur, Percent, DeltaSeconds, 6.0f); Bar->SetPercent(NewP); }
             }
         }
     }
 
-    // Barra del jefe (centro superior)
     if (BossHealthWidget)
     {
         ABossEstatico* Boss = nullptr;
@@ -433,8 +371,8 @@ void AGalagaModificadoMacPawn::UpdateHealthBars()
             if (Boss && !Boss->IsPendingKill())
             {
                 float Percent = (Boss->VidaMaxima > 0.0f) ? (Boss->VidaJefe / Boss->VidaMaxima) : 0.0f;
-                Bar->SetPercent(Percent);
-                Bar->SetVisibility(ESlateVisibility::Visible);
+                float Cur = Bar->Percent; float NewP = FMath::FInterpTo(Cur, Percent, DeltaSeconds, 6.0f);
+                Bar->SetPercent(NewP); Bar->SetVisibility(ESlateVisibility::Visible);
             }
             else Bar->SetVisibility(ESlateVisibility::Hidden);
         }
@@ -447,6 +385,55 @@ UUserWidget* AGalagaModificadoMacPawn::CreateHealthBarForEnemy(AActor* Enemy)
     return CreateWidget<UUserWidget>(GetWorld(), EnemyHealthBarClass);
 }
 // ===========================================
+
+// ========== PAUSA ==========
+void AGalagaModificadoMacPawn::OnPauseButtonPressed()
+{
+    if (bMuerto) return;
+    if (bIsPaused) { ResumeGame(); return; }
+
+    bIsPaused = true;
+    UGameplayStatics::SetGamePaused(GetWorld(), true);
+
+    if (PauseMenuClass && !PauseMenuWidget)
+    {
+        PauseMenuWidget = CreateWidget<UUserWidget>(GetWorld(), PauseMenuClass);
+        if (PauseMenuWidget)
+        {
+            PauseMenuWidget->AddToViewport(200);
+            APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+            if (PC)
+            {
+                FInputModeGameAndUI InputMode;
+                InputMode.SetLockMouseToViewportBehavior(EMouseLockMode::DoNotLock);
+                InputMode.SetWidgetToFocus(PauseMenuWidget->TakeWidget());
+                PC->SetInputMode(InputMode);
+                PC->bShowMouseCursor = true;
+            }
+        }
+    }
+}
+
+void AGalagaModificadoMacPawn::ResumeGame()
+{
+    if (!bIsPaused) return;
+    bIsPaused = false;
+    UGameplayStatics::SetGamePaused(GetWorld(), false);
+    if (PauseMenuWidget) { PauseMenuWidget->RemoveFromParent(); PauseMenuWidget = nullptr; }
+    APlayerController* PC = UGameplayStatics::GetPlayerController(GetWorld(), 0);
+    if (PC) { PC->SetInputMode(FInputModeGameOnly()); PC->bShowMouseCursor = false; }
+}
+
+void AGalagaModificadoMacPawn::ReturnToMainMenuFromPause()
+{
+    UGameplayStatics::SetGamePaused(GetWorld(), false);
+    if (UGalagaGameInstance* GI = Cast<UGalagaGameInstance>(GetGameInstance())) { GI->ReturnToMainMenu(); return; }
+    UGameplayStatics::OpenLevel(GetWorld(), TEXT("MainMenuLevel"));
+}
+
+void AGalagaModificadoMacPawn::PauseResumeGame() { ResumeGame(); }
+void AGalagaModificadoMacPawn::PauseReturnToMainMenu() { ReturnToMainMenuFromPause(); }
+// ===========================
 
 // --- PATRÓN STATE ---
 void FEstadoNaveVoladora::EjecutarTransformacion(AGalagaModificadoMacPawn* NaveContexto)
@@ -539,10 +526,7 @@ FDecoradorRecuperacionNave::FDecoradorRecuperacionNave(IEstadoNave* Estado, AGal
     }
 }
 
-FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
-{
-    Contexto->TiempoDisparoCuadruple = 10.0f;
-}
+FDecoradorCuadrupleCanon::FDecoradorCuadrupleCanon(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->TiempoDisparoCuadruple = 10.0f; }
 
 void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
@@ -552,15 +536,12 @@ void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCont
         if (World != nullptr)
         {
             const FRotator FireRotation = FireDirection.Rotation();
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = NaveContexto;
-
+            FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             float Sep1 = 15.0f, Sep2 = 45.0f;
             FVector Izq1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep1, NaveContexto->GunOffset.Z));
             FVector Der1 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep1, NaveContexto->GunOffset.Z));
             FVector Izq2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, -Sep2, NaveContexto->GunOffset.Z));
             FVector Der2 = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, Sep2, NaveContexto->GunOffset.Z));
-
             World->SpawnActor<AGalagaModificadoMacProjectile>(Izq1, FireRotation, SpawnParams);
             World->SpawnActor<AGalagaModificadoMacProjectile>(Der1, FireRotation, SpawnParams);
             World->SpawnActor<AGalagaModificadoMacProjectile>(Izq2, FireRotation, SpawnParams);
@@ -570,10 +551,7 @@ void FDecoradorCuadrupleCanon::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCont
     else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
 }
 
-FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
-{
-    Contexto->BombasRacimoRestantes += 6;
-}
+FDecoradorBombasRacimo::FDecoradorBombasRacimo(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->BombasRacimoRestantes += 6; }
 
 void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
@@ -583,16 +561,9 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
         if (World != nullptr)
         {
             const FRotator FireRotation = FireDirection.Rotation();
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = NaveContexto;
+            FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             NaveContexto->BombasRacimoRestantes--;
-
-            for (int i = 0; i < 8; i++)
-            {
-                FRotator RacimoRot = FireRotation;
-                RacimoRot.Yaw += (45.0f * i);
-                World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams);
-            }
+            for (int i = 0; i < 8; i++) { FRotator RacimoRot = FireRotation; RacimoRot.Yaw += (45.0f * i); World->SpawnActor<AGalagaModificadoMacProjectile>(NaveContexto->GetActorLocation(), RacimoRot, SpawnParams); }
         }
     }
     else FDecoradorBonificacion::EjecutarAtaque(NaveContexto, FireDirection);
@@ -601,23 +572,16 @@ void FDecoradorBombasRacimo::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContex
 FDecoradorSuperBuffoNave::FDecoradorSuperBuffoNave(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
     Contexto->VelocidadOriginalNave = Contexto->MoveSpeed;
-    Contexto->MoveSpeed *= 2.0f;
-    Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
-    Contexto->MultiplicadorDanio = 1.5f;
-    Contexto->TiempoBuffoNave = 8.0f;
+    Contexto->MoveSpeed *= 2.0f; Contexto->GetCharacterMovement()->MaxFlySpeed = Contexto->MoveSpeed;
+    Contexto->MultiplicadorDanio = 1.5f; Contexto->TiempoBuffoNave = 8.0f;
 }
 
 FDecoradorVelocidadDash::FDecoradorVelocidadDash(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
-    Contexto->MoveSpeed = 800.0f;
-    Contexto->GetCharacterMovement()->MaxWalkSpeed = Contexto->MoveSpeed;
-    Contexto->TiempoBuffoRobot = 10.0f;
+    Contexto->MoveSpeed = 800.0f; Contexto->GetCharacterMovement()->MaxWalkSpeed = Contexto->MoveSpeed; Contexto->TiempoBuffoRobot = 10.0f;
 }
 
-FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
-{
-    Contexto->TiempoCortesDistancia = 12.0f;
-}
+FDecoradorCortesDistancia::FDecoradorCortesDistancia(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado) { Contexto->TiempoCortesDistancia = 12.0f; }
 
 void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveContexto, FVector FireDirection)
 {
@@ -627,8 +591,7 @@ void FDecoradorCortesDistancia::EjecutarAtaque(AGalagaModificadoMacPawn* NaveCon
         if (World != nullptr)
         {
             const FRotator FireRotation = FireDirection.Rotation();
-            FActorSpawnParameters SpawnParams;
-            SpawnParams.Owner = NaveContexto;
+            FActorSpawnParameters SpawnParams; SpawnParams.Owner = NaveContexto;
             FVector SpawnLocation = NaveContexto->GetActorLocation() + FireRotation.RotateVector(FVector(NaveContexto->GunOffset.X, 0.0f, NaveContexto->GunOffset.Z));
             World->SpawnActor<AGalagaModificadoMacProjectile>(SpawnLocation, FireRotation, SpawnParams);
         }
@@ -646,6 +609,5 @@ FDecoradorRecuperacionRobot::FDecoradorRecuperacionRobot(IEstadoNave* Estado, AG
 
 FDecoradorInmunidad::FDecoradorInmunidad(IEstadoNave* Estado, AGalagaModificadoMacPawn* Contexto) : FDecoradorBonificacion(Estado)
 {
-    Contexto->TiempoInmunidad = 8.0f;
-    Contexto->MultiplicadorDanio = 2.0f;
+    Contexto->TiempoInmunidad = 8.0f; Contexto->MultiplicadorDanio = 2.0f;
 }

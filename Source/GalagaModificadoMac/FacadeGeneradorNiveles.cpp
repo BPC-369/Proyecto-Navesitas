@@ -43,7 +43,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Add(4, 1);
 	CampanaNiveles.Add(Nivel);
 
-	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 10; Nivel.CantidadObstaculosB = 0;
+	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 500; Nivel.CantidadObstaculosB = 120;
     Nivel.TiempoLimite = 300;
 	Nivel.EnemigosPorGenerar.Empty();
 	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
@@ -54,7 +54,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
-    Nivel.EnemigosPorGenerar.Add(7, 3);
+    Nivel.EnemigosPorGenerar.Add(1, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
     
@@ -64,6 +64,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
     Nivel.EnemigosPorGenerar.Add(4, 3);
+    Nivel.EnemigosPorGenerar.Add(1, 3);
     Nivel.EnemigosPorGenerar.Add(6, 3);
     CampanaNiveles.Add(Nivel);
 
@@ -71,6 +72,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
+    Nivel.EnemigosPorGenerar.Add(1, 3);
     Nivel.EnemigosPorGenerar.Add(6, 4);
     CampanaNiveles.Add(Nivel);
 
@@ -79,6 +81,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
+    Nivel.EnemigosPorGenerar.Add(1, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
     //editas el bioma de la ciudad
@@ -104,7 +107,7 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 50;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
-    Nivel.EnemigosPorGenerar.Add(1, 2);
+    Nivel.EnemigosPorGenerar.Add(1, 5);
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;

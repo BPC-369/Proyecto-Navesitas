@@ -15,6 +15,7 @@ class ABossEstatico;
 class ARobot_Medico;
 class ARobot_RZ;
 class ARobot_RZ_D;
+class AFabricaInvulnerable;
 
 class UFacadeGeneradorNiveles;
 
@@ -54,10 +55,14 @@ public:
 
 	void ActualizarContadorTiempo();
 	void IniciarDerrotaPorTiempo();
+    UFUNCTION()
+        void OnEnemyDestroyed(AActor* DestroyedActor);
 
     // Rotación del jefe (ajustable desde el editor o código)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Jefe")
         FRotator RotacionJefe = FRotator(0.0f, 180.0f, 0.0f);
+    UPROPERTY()
+        TArray<AFabricaInvulnerable*> ListaFabricas;
 
 private:
     void AplicarDificultadEnemigo(AActor* Enemigo);
