@@ -329,7 +329,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
         }
     }
 
-#undef BIND_DESTROY
+ #undef BIND_DESTROY
 
     UE_LOG(LogTemp, Warning, TEXT("¡Ejército desplegado con dificultad aplicada!"));
 }
@@ -379,8 +379,10 @@ void AGalagaModificadoMacGameMode::VerificarCondicionVictoria()
         ListaRobotsRZD.Num() +
         ListaBossEstaticos.Num();
 
+   
     if (TotalEnemigosVivos == 0)
     {
+        // Limpiamos el reloj para que no te dé derrota si ya ganaste
         GetWorldTimerManager().ClearTimer(TimerHandle_Reloj);
 
         FTimerHandle HandleMudar;
@@ -406,7 +408,8 @@ void AGalagaModificadoMacGameMode::VerificarCondicionVictoria()
                 }
             }, 3.0f, false);
     }
-}
+} 
+   
 
 // ========== MÚSICA ==========
 void AGalagaModificadoMacGameMode::IniciarMusica()

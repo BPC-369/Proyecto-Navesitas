@@ -4,6 +4,7 @@
 #include "ObstaculoCiudadDestruidaFactory.h"
 #include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
+#include "CuartelEnemigo.h"
 #include "Engine/World.h"
 
 AObstaculoCiudadDestruidaFactory::AObstaculoCiudadDestruidaFactory()
@@ -23,7 +24,26 @@ AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculoEspecifico(
 	if (!Mundo) return nullptr;
 
 	UStaticMesh* MallaElegida = nullptr;
-
+	if (Tipo.Equals(TEXT("CuartelMedico")))
+	{
+		ACuartelEnemigo* Cuartel = Mundo->SpawnActor<ACuartelEnemigo>(ACuartelEnemigo::StaticClass(), Posicion, Rotacion);
+		if (Cuartel)
+		{
+			Cuartel->TipoRobotASpawnear = 9;    // ID Médico
+			Cuartel->TiempoEntreSpawns = 10.0f; // Cada 10 segundos
+		}
+		return nullptr; // Retornamos nulo porque no es un AObstaculoDestruido ordinario
+	}
+	else if (Tipo.Equals(TEXT("CuartelMelee")))
+	{
+		ACuartelEnemigo* Cuartel = Mundo->SpawnActor<ACuartelEnemigo>(ACuartelEnemigo::StaticClass(), Posicion, Rotacion);
+		if (Cuartel)
+		{
+			Cuartel->TipoRobotASpawnear = 10;  // ID RZ Melee
+			Cuartel->TiempoEntreSpawns = 6.0f; // Cada 6 segundos
+		}
+		return nullptr;
+	}
 	// Seleccionamos la malla según el tipo
 	if (Tipo.Equals(TEXT("Edificio")) && MallasEdificios.Num() > 0)
 	{
@@ -80,8 +100,7 @@ AObstaculoDestruido* AObstaculoCiudadDestruidaFactory::CrearObstaculoEspecifico(
 					float EscalaRoca = FMath::RandRange(1.5f, 2.5f);
 					MeshComp->SetWorldScale3D(FVector(EscalaRoca, EscalaRoca, EscalaRoca));
 				}
-				// ============================================================
-
+				// ===========================================================
 				return NuevoObstaculo;
 			}
 		}
