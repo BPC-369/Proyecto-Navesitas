@@ -23,11 +23,16 @@ public:
 	bool bEsElite;
 	float RangoCuracionArea;
 
-private:
-	// Puntero para recordar a quién estamos curando
-	AEnemigoTerrestre* AliadoObjetivo;
+	// Animación para reproducir cuando cura
+	UPROPERTY(EditAnywhere, Category = "Animacion")
+	UAnimMontage* AnimacionCurar;
 
-	// Timers para no saturar el Tick
+private:
+	// Punteros y datos del aliado
+	AEnemigoTerrestre* AliadoObjetivo;
+	float VelocidadOriginalAliado; // Para devolverle su velocidad al terminar de curar
+
+	// Timers
 	FTimerHandle TimerBusqueda;
 	FTimerHandle TimerCuracion;
 	FTimerHandle TimerPaseo;
@@ -44,4 +49,7 @@ private:
 	void DetenerCuracion();
 	void CurarAreaElite();
 	void GenerarDestinoAleatorio();
+
+	// Nueva función táctica
+	AEnemigoTerrestre* ObtenerEscudoDeCarneMasCercano();
 };

@@ -52,8 +52,22 @@ AGalagaModificadoMacPawn::AGalagaModificadoMacPawn()
     static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaNave(TEXT("StaticMesh'/Game/Geometry/sasa/StarSparrow04.StarSparrow04'"));
     if (FormaNave.Succeeded()) RopaNave = FormaNave.Object;
 
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> FormaCubo(TEXT("StaticMesh'/Game/Geometry/pawn/pawn09.pawn09'"));
-    if (FormaCubo.Succeeded()) RopaCubo = FormaCubo.Object;
+    RobotMeshComponent = CreateDefaultSubobject<USkeletalMeshComponent>(TEXT("RobotMesh"));
+    RobotMeshComponent->SetupAttachment(GetCapsuleComponent());
+    RobotMeshComponent->SetCollisionProfileName(TEXT("NoCollision")); // Fantasma físico
+    RobotMeshComponent->SetRelativeRotation(FRotator(0.f, -90.f, 0.f));
+    RobotMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, -60.0f)); // Alineamos los pies al piso
+    RobotMeshComponent->SetVisibility(false); // Nace oculto
+
+    static ConstructorHelpers::FObjectFinder<USkeletalMesh> MallaRobotAsset(TEXT("SkeletalMesh'/Game/Geometry/PawnRobot/MallaPawnRobot.MallaPawnRobot'"));
+    if (MallaRobotAsset.Succeeded()) RobotMeshComponent->SetSkeletalMesh(MallaRobotAsset.Object);
+
+    static ConstructorHelpers::FClassFinder<UAnimInstance> AnimRobotAsset(TEXT("AnimBlueprint'/Game/Blueprints/ABP_PawnRobot.ABP_PawnRobot_C'"));
+    if (AnimRobotAsset.Succeeded())
+    {
+        RobotMeshComponent->SetAnimationMode(EAnimationMode::AnimationBlueprint);
+        RobotMeshComponent->SetAnimInstanceClass(AnimRobotAsset.Class);
+    }
 
     static ConstructorHelpers::FObjectFinder<USoundBase> FireAudio(TEXT("SoundWave'/Game/music/lasecito.lasecito'"));
     FireSound = FireAudio.Object;
@@ -160,7 +174,7 @@ void AGalagaModificadoMacPawn::SetupPlayerInputComponent(class UInputComponent* 
 
     PlayerInputComponent->BindAction("BotonCambio", IE_Pressed, this, &AGalagaModificadoMacPawn::Transformar);
     PlayerInputComponent->BindAxis("Turn", this, &APawn::AddControllerYawInput);
-    PlayerInputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
+    PlayerInputComponent->BindAxis("LookUp", this, &AGalagaModificadoMacPawn::InvertirMouseFPS);
     PlayerInputComponent->BindAction("Disparar", IE_Pressed, this, &AGalagaModificadoMacPawn::EmpezarDisparo);
     PlayerInputComponent->BindAction("Disparar", IE_Released, this, &AGalagaModificadoMacPawn::DetenerDisparo);
     PlayerInputComponent->BindAction("Pause", IE_Pressed, this, &AGalagaModificadoMacPawn::OnPauseButtonPressed);
@@ -175,13 +189,44 @@ void AGalagaModificadoMacPawn::Tick(float DeltaSeconds)
     const float RightValue = GetInputAxisValue(MoveRightBinding);
     const float UpValue = GetInputAxisValue(MoveUpBinding);
 
-    const float ValorMouseX = GetInputAxisValue("Turn");
-    const float ValorMouseY = GetInputAxisValue("LookUp");
-
-    if (CameraBoom != nullptr && (ValorMouseX != 0.0f || ValorMouseY != 0.0f))
+    if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Flying)
     {
-        FRotator RotacionNave = FRotator(ValorMouseY * 3.0f, ValorMouseX * 3.0f, 0.0f);
-        AddActorLocalRotation(RotacionNave);
+        const float ValorMouseX = GetInputAxisValue("Turn");
+        const float ValorMouseY = GetInputAxisValue("LookUp");
+
+        if (CameraBoom != nullptr && (ValorMouseX != 0.0f || ValorMouseY != 0.0f))
+        {
+            // 1. Obtenemos la rotación actual
+            FRotator RotacionActual = GetActorRotation();
+
+            // 2. Calculamos la nueva dirección
+            float NuevoPitch = RotacionActual.Pitch + (ValorMouseY * 3.0f);
+            float NuevoYaw = RotacionActual.Yaw + (ValorMouseX * 3.0f);
+
+            // 3. LIMITAMOS que tanto puede subir o bajar la nariz (Ej: -60 a 60 grados)
+            // Esto evita que la nave de una vuelta completa hacia atrás y quede de cabeza
+            NuevoPitch = FMath::Clamp(NuevoPitch, -60.0f, 60.0f);
+
+            // 4. APLICAMOS, forzando el Roll a 0.0f para que SIEMPRE esté "de pie"
+            FRotator NuevaRotacion = FRotator(NuevoPitch, NuevoYaw, 0.0f);
+
+            SetActorRotation(NuevaRotacion);
+        }
+    }
+    else if (GetCharacterMovement() && GetCharacterMovement()->MovementMode == MOVE_Walking)
+    {
+        // CONTROLES DEL ROBOT (El cuerpo apunta directamente al cursor)
+        APlayerController* PC = Cast<APlayerController>(GetController());
+        if (PC)
+        {
+            FHitResult HitResult;
+            if (PC->GetHitResultUnderCursor(ECC_Visibility, false, HitResult))
+            {
+                FVector DireccionMouse = HitResult.ImpactPoint - GetActorLocation();
+                DireccionMouse.Z = 0.0f; // Evita que el robot se incline hacia arriba o abajo
+                SetActorRotation(DireccionMouse.Rotation());
+            }
+        }
     }
 
     AddMovementInput(GetActorForwardVector(), ForwardValue);
@@ -260,6 +305,13 @@ void AGalagaModificadoMacPawn::NotifyActorBeginOverlap(AActor* OtherActor)
     }
 }
 
+void AGalagaModificadoMacPawn::InvertirMouseFPS(float Valor)
+{
+    // Multiplicamos por -1 para invertir el eje y lograr un control FPS tradicional.
+    // Esto solo afectará al Robot, porque la Nave procesa su propia rotación en el Tick.
+    AddControllerPitchInput(Valor * -1.0f);
+}
+
 void AGalagaModificadoMacPawn::EmpezarDisparo() { bEstaDisparando = true; }
 void AGalagaModificadoMacPawn::DetenerDisparo() { bEstaDisparando = false; }
 
@@ -271,14 +323,55 @@ void AGalagaModificadoMacPawn::CambiarEstado(IEstadoNave* NuevoEstado)
 
 void AGalagaModificadoMacPawn::ConvertirEnNave()
 {
-    if (RopaNave != nullptr) ShipMeshComponent->SetStaticMesh(RopaNave);
+    // 1. Ocultar Robot, Mostrar Nave
+    if (RobotMeshComponent) RobotMeshComponent->SetVisibility(false);
+    if (ShipMeshComponent)
+    {
+        ShipMeshComponent->SetVisibility(true);
+        if (RopaNave) ShipMeshComponent->SetStaticMesh(RopaNave);
+    }
+
     if (GetCharacterMovement()) GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+
+    // 3. RESTAURAR CÁMARA ORIGINAL DE LA NAVE
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = 800.f; // <-- DE VUELTA A TU VALOR ORIGINAL
+        CameraBoom->SocketOffset = FVector(0.f, 0.f, 150.f);
+        CameraBoom->bUsePawnControlRotation = false;
+        CameraBoom->SetUsingAbsoluteRotation(false);
+        CameraBoom->SetRelativeRotation(FRotator(-15.f, 0.f, 0.f));
+    }
+
+    bUseControllerRotationYaw = false;
 }
 
 void AGalagaModificadoMacPawn::ConvertirEnRobot()
 {
-    if (RopaCubo != nullptr) ShipMeshComponent->SetStaticMesh(RopaCubo);
+    // 1. Ocultar Nave, Mostrar Robot
+    if (ShipMeshComponent) ShipMeshComponent->SetVisibility(false);
+    if (RobotMeshComponent) RobotMeshComponent->SetVisibility(true);
+
+    // 2. Físicas de caminar
     if (GetCharacterMovement()) GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+
+    // 3. CÁMARA DE ROBOT (Primera Persona)
+    if (CameraBoom)
+    {
+        CameraBoom->TargetArmLength = 100.f; // Pegamos la cámara completamente al cuerpo (0 de distancia)
+
+        CameraBoom->SocketOffset = FVector::ZeroVector;
+        // Movemos la cámara a la altura de la cabeza (Z=60) 
+        // y la empujamos un poco hacia adelante (X=40) para que no veas la espalda del robot por dentro
+        CameraBoom->SocketOffset = FVector(20.f, 0.f, 100.f);
+        CameraBoom->SetUsingAbsoluteRotation(false);
+
+        // MAGIA: Le decimos a la cámara que obedezca directamente al movimiento del mouse
+        CameraBoom->bUsePawnControlRotation = true;
+    }
+
+    // MAGIA 2: Le decimos al cuerpo del robot que gire de izquierda a derecha cuando muevas la cámara
+    bUseControllerRotationYaw = true;
 }
 
 void AGalagaModificadoMacPawn::Transformar()

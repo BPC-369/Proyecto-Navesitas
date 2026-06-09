@@ -8,6 +8,7 @@
 
 class UStaticMesh;
 class UComponenteCombate;
+class USkeletalMeshComponent;
 
 // --- PATRÓN STATE ---
 class AGalagaModificadoMacPawn;
@@ -115,6 +116,9 @@ class AGalagaModificadoMacPawn : public ACharacter
     UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class USpringArmComponent* CameraBoom;
 
+    UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+        USkeletalMeshComponent* RobotMeshComponent;
+
 public:
     AGalagaModificadoMacPawn();
 
@@ -176,9 +180,11 @@ public:
     FORCEINLINE class UStaticMeshComponent* GetShipMeshComponent() const { return ShipMeshComponent; }
     FORCEINLINE class UCameraComponent* GetCameraComponent() const { return CameraComponent; }
     FORCEINLINE class USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
+    FORCEINLINE class USkeletalMeshComponent* GetRobotMeshComponent() const { return RobotMeshComponent; }
 
     void Transformar();
     void ManejarMuerte();
+    void InvertirMouseFPS(float Valor);
 
     UFUNCTION(BlueprintImplementableEvent, Category = "Muerte")
         void OnDeathEvent();

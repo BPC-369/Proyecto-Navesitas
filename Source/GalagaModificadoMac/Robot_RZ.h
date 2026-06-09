@@ -20,8 +20,11 @@ public:
 protected:
 
 	void EjecutarGolpeMelee();
+	void ResetearAtaque();
 
 	FTimerHandle TimerAtaque;
+	FTimerHandle TimerCooldown;
 
-	bool bEstaAtacando;
+	UPROPERTY(EditAnywhere, Category = "Animacion")
+	UAnimMontage* AnimacionAtaqueMelee;
 };
