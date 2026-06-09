@@ -194,32 +194,50 @@ public:
     void ConvertirEnNave();
     void ConvertirEnRobot();
 
-    // ========== BARRAS DE VIDA EN HUD ==========
+    // ========== HUD ==========
     UPROPERTY()
         TMap<AActor*, class UUserWidget*> EnemyHealthWidgets;
-
     UPROPERTY()
         class UUserWidget* EnemyListWidget;
-
     UPROPERTY()
         class UUserWidget* BossHealthWidget;
+    UPROPERTY()
+        class UUserWidget* CrosshairWidget;
 
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> EnemyHealthBarClass;
-
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> EnemyListClass;
-
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> BossHealthClass;
-
-    // Clase del crosshair (cargada en el constructor, creada en BeginPlay)
     UPROPERTY(EditDefaultsOnly, Category = "UI")
         TSubclassOf<class UUserWidget> CrosshairClass;
 
-    void UpdateHealthBars();
+    void UpdateHealthBars(float DeltaSeconds);
     class UUserWidget* CreateHealthBarForEnemy(AActor* Enemy);
-    // ===========================================
+
+    bool bEnemyTargeted = false;
+    // =======================
+
+    // ========== PAUSA ==========
+    UPROPERTY(EditDefaultsOnly, Category = "UI")
+        TSubclassOf<class UUserWidget> PauseMenuClass;
+
+    UPROPERTY()
+        class UUserWidget* PauseMenuWidget;
+
+    bool bIsPaused = false;
+
+    void OnPauseButtonPressed();
+    void ResumeGame();
+    void ReturnToMainMenuFromPause();
+
+    UFUNCTION(BlueprintCallable)
+        void PauseResumeGame();
+
+    UFUNCTION(BlueprintCallable)
+        void PauseReturnToMainMenu();
+    // ===========================
 
 protected:
     virtual void BeginPlay() override;

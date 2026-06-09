@@ -13,7 +13,7 @@
 ABossProjectile::ABossProjectile()
 {
     PrimaryActorTick.bCanEverTick = true;
-    InitialLifeSpan = 3.0f;                     // Vida máxima de 3 segundos
+    InitialLifeSpan = 3.5f;                     // Vida máxima de 3 segundos
 
     Colisionador = CreateDefaultSubobject<USphereComponent>(TEXT("Colisionador"));
     Colisionador->InitSphereRadius(25.0f);
@@ -41,7 +41,7 @@ ABossProjectile::ABossProjectile()
     ComponenteMovimiento->ProjectileGravityScale = 0.0f;
 
     Dano = 200.0f;
-    MaxTravelDistance = 5000.0f;                // Destruir si supera esta distancia
+    MaxTravelDistance = 10000.0f;                // Destruir si supera esta distancia
 }
 
 void ABossProjectile::BeginPlay()

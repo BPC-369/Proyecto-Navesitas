@@ -2,45 +2,68 @@
 #include "Components/StaticMeshComponent.h"
 #include "Components/SceneComponent.h"
 #include "UObject/ConstructorHelpers.h"
+#include "Kismet/GameplayStatics.h"
+#include "Particles/ParticleSystem.h"
+#include "Sound/SoundBase.h"
 
 ACeldaEnergia::ACeldaEnergia()
 {
-    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bCanEverTick = false;   // Sin rotación para mantener el centrado
 
     RaizCelda = CreateDefaultSubobject<USceneComponent>(TEXT("RaizCelda"));
     RootComponent = RaizCelda;
 
-    PivoteCentrado = CreateDefaultSubobject<USceneComponent>(TEXT("PivoteCentrado"));
-    PivoteCentrado->SetupAttachment(RaizCelda);
-
     MallaCelda = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("MallaCelda"));
-    MallaCelda->SetupAttachment(PivoteCentrado);
+    MallaCelda->SetupAttachment(RaizCelda);
 
+    // Tu malla original del OVNI
     static ConstructorHelpers::FObjectFinder<UStaticMesh> NuevaMalla(TEXT("/Game/Geometry/pawn/uploads_files_4331233_UFO+4.uploads_files_4331233_UFO+4"));
     if (NuevaMalla.Succeeded())
+    {
         MallaCelda->SetStaticMesh(NuevaMalla.Object);
+    }
 
-    MallaCelda->SetWorldScale3D(FVector(1.0f));
+    // Escala de la celda (3 veces el tamaño original)
+    MallaCelda->SetWorldScale3D(FVector(3.0f));
     MallaCelda->SetCollisionProfileName(TEXT("OverlapAllDynamic"));
 
     Vida = 400.0f;
     bDestruida = false;
     MiObservador = nullptr;
+
+    // Explosión de agua
+    static ConstructorHelpers::FObjectFinder<UParticleSystem> ExplosionAsset(
+        TEXT("/Game/FXVarietyPack/Particles/P_ky_waterBallHit")
+    );
+    if (ExplosionAsset.Succeeded()) ExplosionEffect = ExplosionAsset.Object;
+
+    // Sonido de explosión
+    static ConstructorHelpers::FObjectFinder<USoundBase> ExplosionSoundAsset(
+        TEXT("/Game/music/explooosion")
+    );
+    if (ExplosionSoundAsset.Succeeded()) ExplosionSound = ExplosionSoundAsset.Object;
+
+    ExplosionScale = 15.0f;   // Explosión grande
 }
 
 void ACeldaEnergia::BeginPlay()
 {
     Super::BeginPlay();
 
-    FVector CentroLocal(402.782f, -974.473f, 483.138f);
-    PivoteCentrado->SetRelativeLocation(CentroLocal);
-    MallaCelda->SetRelativeLocation(FVector::ZeroVector);
+    // --- Centrar la malla teniendo en cuenta la escala ---
+    if (MallaCelda && MallaCelda->GetStaticMesh())
+    {
+        FBox BoundingBox = MallaCelda->GetStaticMesh()->GetBoundingBox();
+        FVector CentroMalla = BoundingBox.GetCenter();
+        // La escala afecta a la posición del centro, así que multiplicamos
+        MallaCelda->SetRelativeLocation(-CentroMalla * MallaCelda->GetComponentScale());
+    }
 }
 
 void ACeldaEnergia::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    PivoteCentrado->AddLocalRotation(FRotator(0.0f, 10.0f * DeltaTime, 0.0f));
+    // Sin rotación
 }
 
 void ACeldaEnergia::AsignarObservador(ICeldaObserver* Observador)
@@ -58,8 +81,32 @@ float ACeldaEnergia::TakeDamage(float DamageAmount, FDamageEvent const& DamageEv
         Vida = 0;
         bDestruida = true;
         if (MiObservador)
+        {
             MiObservador->NotificarCeldaDestruida(this);
+        }
         Destroy();
     }
     return DamageAmount;
+}
+
+void ACeldaEnergia::Destroyed()
+{
+    if (ExplosionEffect)
+    {
+        UGameplayStatics::SpawnEmitterAtLocation(
+            GetWorld(),
+            ExplosionEffect,
+            GetActorLocation(),
+            GetActorRotation(),
+            FVector(ExplosionScale),
+            true
+        );
+    }
+
+    if (ExplosionSound)
+    {
+        UGameplayStatics::PlaySoundAtLocation(this, ExplosionSound, GetActorLocation());
+    }
+
+    Super::Destroyed();
 }
