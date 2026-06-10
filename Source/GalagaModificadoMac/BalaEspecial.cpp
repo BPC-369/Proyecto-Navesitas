@@ -1,52 +1,31 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "BalaEspecial.h"
 #include "GameFramework/ProjectileMovementComponent.h"
-#include "UObject/ConstructorHelpers.h"
 #include "Components/StaticMeshComponent.h"
+#include "UObject/ConstructorHelpers.h"
 
 ABalaEspecial::ABalaEspecial()
 {
-    // mallita wiwiw
-    static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("/Game/TwinStick/Meshes/TwinStickProjectile.TwinStickProjectile"));
+	// Malla
+	if (GetProjectileMesh())
+	{
+		static ConstructorHelpers::FObjectFinder<UStaticMesh> MeshAsset(TEXT("/Game/TwinStick/Meshes/TwinStickProjectile.TwinStickProjectile"));
+		if (MeshAsset.Succeeded())
+		{
+			GetProjectileMesh()->SetStaticMesh(MeshAsset.Object);
+			GetProjectileMesh()->SetWorldScale3D(FVector(3.0f, 3.0f, 3.0f));
 
-    if (MeshAsset.Succeeded())
-    {
-        if (GetProjectileMesh())
-        {
-            GetProjectileMesh()->SetStaticMesh(MeshAsset.Object);
+			static ConstructorHelpers::FObjectFinder<UMaterial> MaterialEspecial(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
+			if (MaterialEspecial.Succeeded())
+				GetProjectileMesh()->SetMaterial(0, MaterialEspecial.Object);
+		}
+	}
 
-            // ajustar escala de la balita
-            // Esto es lo que más se va a notar visualmente
-            GetProjectileMesh()->SetWorldScale3D(FVector(3.0f, 3.0f, 3.0f));
+	// Movimiento
+	if (GetProjectileMovement())
+	{
+		GetProjectileMovement()->InitialSpeed = 4000.f;
+		GetProjectileMovement()->MaxSpeed = 4000.f;
+	}
 
-            // aplicar colorsito o mallitas diferentes
-            // copiar aqui mallita copiando su ruta aquí:
-            static ConstructorHelpers::FObjectFinder<UMaterial> MaterialEspecial(TEXT("/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"));
-            if (MaterialEspecial.Succeeded())
-            {
-                GetProjectileMesh()->SetMaterial(0, MaterialEspecial.Object);
-            }
-        }
-    }
-
-    // VELOCIDAD Y DAÑO
-    if (GetProjectileMovement())
-    {
-        DanoProyectil = 50.0f;
-        GetProjectileMovement()->InitialSpeed = 4000.f;
-        GetProjectileMovement()->MaxSpeed = 4000.f;
-    }
-} 
-
-void ABalaEspecial::BeginPlay()
-{
-	Super::BeginPlay();
-	UE_LOG(LogTemp, Warning, TEXT("¡Se ha disparado una BALA ESPECIAL!"));
-}
-
-void ABalaEspecial::Tick(float DeltaTime)
-{
-	Super::Tick(DeltaTime);
+	DanoProyectil = 50.0f;
 }

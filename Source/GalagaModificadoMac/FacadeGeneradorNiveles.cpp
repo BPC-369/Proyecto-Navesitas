@@ -3,25 +3,21 @@
 #include "Kismet/GameplayStatics.h"
 #include "GestorBonificaciones.h"
 
-// INCLUDES DE LA ARQUITECTURA BUILDER 
 #include "EscenarioDirector.h"
 #include "EscenarioBase.h"
 
-// Builders Concretos
 #include "EspacioEscenarioBuilder.h"
 #include "CiudadEscenarioBuilder.h"
 #include "AtmosferaEscenarioBuilder.h"
 #include "NaveNodrizaEscenarioBuilder.h"
 #include "NaveNodrizaGefeBuilder.h"
 
-// Productos de Escenario
 #include "EscenarioEspacio.h"
 #include "EscenarioCiudad.h"
 #include "EscenarioAtmosfera.h"
 #include "EscenarioNaveNodriza.h"
 
-// Clase base de obstaculos para la limpieza
-#include "ObstaculoDestruido.h" 
+#include "ObstaculoDestruido.h"
 
 void UFacadeGeneradorNiveles::Inicializar(UWorld* WorldContext)
 {
@@ -34,31 +30,32 @@ void UFacadeGeneradorNiveles::InicializarCampana()
 {
     CampanaNiveles.Empty();
     FConfiguracionNivel Nivel;
-    //editas el bioma del espacio
-	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 5000; Nivel.CantidadObstaculosB = 5000;
-    Nivel.TiempoLimite = 300;
-	Nivel.EnemigosPorGenerar.Empty();
-	Nivel.EnemigosPorGenerar.Add(5, 5); // ID 5 (Kamikaze) -> Cantidad: 5
-	Nivel.EnemigosPorGenerar.Add(1, 2); // ID 1 (Comando) -> Cantidad: 2
-    Nivel.EnemigosPorGenerar.Add(4, 1);
-	CampanaNiveles.Add(Nivel);
 
-	Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 500; Nivel.CantidadObstaculosB = 120;
+    // ========== ESPACIO (bioma 1) – índices 0,1,2 =================================
+    Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 5000; Nivel.CantidadObstaculosB = 5000;
     Nivel.TiempoLimite = 300;
-	Nivel.EnemigosPorGenerar.Empty();
-	Nivel.EnemigosPorGenerar.Add(5, 10); // 10 Kamikazes
-	Nivel.EnemigosPorGenerar.Add(1, 4);  // 4 Naves CMN
-	CampanaNiveles.Add(Nivel);
+    Nivel.EnemigosPorGenerar.Empty();
+    Nivel.EnemigosPorGenerar.Add(5, 5); // Kamikaze
+    Nivel.EnemigosPorGenerar.Add(1, 2); // Comando
+    Nivel.EnemigosPorGenerar.Add(4, 1); // Nave Líder
+    CampanaNiveles.Add(Nivel);
+
+    Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 500; Nivel.CantidadObstaculosB = 120;
+    Nivel.TiempoLimite = 300;
+    Nivel.EnemigosPorGenerar.Empty();
+    Nivel.EnemigosPorGenerar.Add(5, 10);
+    Nivel.EnemigosPorGenerar.Add(1, 4);
+    CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 1; Nivel.CantidadObstaculosA = 60; Nivel.CantidadObstaculosB = 20;
     Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
-    Nivel.EnemigosPorGenerar.Add(2, 6);
+    Nivel.EnemigosPorGenerar.Add(5, 6);
     Nivel.EnemigosPorGenerar.Add(1, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
-    
-    //editas el bioma de la atmosfera
+
+    // ========== ATMÓSFERA (bioma 2) – índices 3,4,5 ==============================
     Nivel.TipoAmbiente = 2; Nivel.CantidadObstaculosA = 550; Nivel.CantidadObstaculosB = 50;
     Nivel.TiempoLimite = 300;
     Nivel.EnemigosPorGenerar.Empty();
@@ -84,7 +81,8 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Add(1, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
     CampanaNiveles.Add(Nivel);
-    //editas el bioma de la ciudad
+
+    // ========== CIUDAD OMEGA (bioma 3) – índices 6,7,8 ===========================
     Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 120; Nivel.CantidadObstaculosB = 120;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
@@ -93,12 +91,14 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Add(9, 0);
     Nivel.EnemigosPorGenerar.Add(10, 0);
     Nivel.EnemigosPorGenerar.Add(11, 0);
+    Nivel.EnemigosPorGenerar.Add(12, 1); // 1 cuartel terrestre
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
     Nivel.EnemigosPorGenerar.Add(6, 4);
+    Nivel.EnemigosPorGenerar.Add(12, 2); // 2 cuarteles
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 3; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
@@ -106,18 +106,22 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
+    Nivel.EnemigosPorGenerar.Add(12, 1); // 1 cuartel
     CampanaNiveles.Add(Nivel);
-    //editas el bioma de la navenodriza
+
+    // ========== NAVE NODRIZA (bioma 4) – índices 9,10,11 =========================
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 50;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
     Nivel.EnemigosPorGenerar.Add(1, 5);
+    Nivel.EnemigosPorGenerar.Add(12, 1); // 1 cuartel
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 10);
     Nivel.EnemigosPorGenerar.Add(1, 1);
+    Nivel.EnemigosPorGenerar.Add(12, 2); // 2 cuarteles
     CampanaNiveles.Add(Nivel);
 
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
@@ -125,25 +129,34 @@ void UFacadeGeneradorNiveles::InicializarCampana()
     Nivel.EnemigosPorGenerar.Add(2, 6);
     Nivel.EnemigosPorGenerar.Add(7, 3);
     Nivel.EnemigosPorGenerar.Add(4, 2);
+    Nivel.EnemigosPorGenerar.Add(12, 1); // 1 cuartel
     CampanaNiveles.Add(Nivel);
-    //nivelgefefinal
+
+    // ========== JEFE FINAL (bioma 5) – índice 12 (nivel 13) ======================
     Nivel.TipoAmbiente = 5; Nivel.CantidadObstaculosA = 50; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
     Nivel.EnemigosPorGenerar.Add(5, 5);
-    Nivel.EnemigosPorGenerar.Add(8, 1);
+    Nivel.EnemigosPorGenerar.Add(8, 1);  // Boss
     CampanaNiveles.Add(Nivel);
 
+    // ========== NIVELES POST‑JEFE – índices 13 y 14 ==============================
+    // Nivel 14 (índice 13) – Escape encarnizado (nave nodriza, todos enemigos)
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
-    Nivel.EnemigosPorGenerar.Add(5, 10);
-    Nivel.EnemigosPorGenerar.Add(6, 4);
+    Nivel.EnemigosPorGenerar.Add(1, 4);  // naves comando
+    Nivel.EnemigosPorGenerar.Add(5, 8);  // kamikazes
+    Nivel.EnemigosPorGenerar.Add(6, 6);  // CMN
+    Nivel.EnemigosPorGenerar.Add(12, 3); // 3 cuarteles
     CampanaNiveles.Add(Nivel);
 
+    // Nivel 15 (índice 14) – Batalla solo naves
     Nivel.TipoAmbiente = 4; Nivel.CantidadObstaculosA = 0; Nivel.CantidadObstaculosB = 0;
     Nivel.EnemigosPorGenerar.Empty();
-    Nivel.EnemigosPorGenerar.Add(2, 6);
-    Nivel.EnemigosPorGenerar.Add(7, 3);
-    Nivel.EnemigosPorGenerar.Add(4, 2);
+    Nivel.EnemigosPorGenerar.Add(1, 6);
+    Nivel.EnemigosPorGenerar.Add(4, 4);
+    Nivel.EnemigosPorGenerar.Add(5, 12);
+    Nivel.EnemigosPorGenerar.Add(6, 10);
+    // Sin cuarteles ni robots terrestres
     CampanaNiveles.Add(Nivel);
 }
 
@@ -169,7 +182,6 @@ void UFacadeGeneradorNiveles::DestruirNivelAnterior()
         }
         TArray<AActor*> ObstaculosHuerfanos;
         UGameplayStatics::GetAllActorsOfClass(MundoActual, AObstaculoDestruido::StaticClass(), ObstaculosHuerfanos);
-
         for (AActor* Obstaculo : ObstaculosHuerfanos)
         {
             if (Obstaculo) Obstaculo->Destroy();
@@ -183,7 +195,7 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
 
     if (!CampanaNiveles.IsValidIndex(IndiceNivel))
     {
-        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Campana Completada con exito!"));
+        GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Green, TEXT("Campaña Completada con éxito!"));
         return;
     }
 
@@ -208,7 +220,6 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
         ClaseEscenarioProducto = AEscenarioEspacio::StaticClass();
         break;
     }
-    
     case 2:
     {
         AAtmosferaEscenarioBuilder* AtmosferaBuilder = MundoActual->SpawnActor<AAtmosferaEscenarioBuilder>(AAtmosferaEscenarioBuilder::StaticClass(), SpawnParams);
@@ -234,8 +245,6 @@ void UFacadeGeneradorNiveles::CargarNivelPorIndice(int32 IndiceNivel)
     {
         ANaveNodrizaGefeBuilder* GefeBuilder = MundoActual->SpawnActor<ANaveNodrizaGefeBuilder>(ANaveNodrizaGefeBuilder::StaticClass(), SpawnParams);
         if (GefeBuilder) BuilderElegido = GefeBuilder;
-
-        // Sigue usando el mismo producto (la base tecnológica de la nave), pero con tu constructor mutado
         ClaseEscenarioProducto = AEscenarioNaveNodriza::StaticClass();
         break;
     }
@@ -285,7 +294,6 @@ void UFacadeGeneradorNiveles::AplicarDificultad(const FString& Difficulty)
         MultiplicadorCantidad = 2.0f;
         MultiplicadorDificultad = 3.0f;
     }
-    // Normal: ambos se quedan en 1.0
 
     for (auto& Par : ConfiguracionActual.EnemigosPorGenerar)
     {
@@ -293,6 +301,6 @@ void UFacadeGeneradorNiveles::AplicarDificultad(const FString& Difficulty)
         Par.Value = FMath::Max(1, NuevaCantidad);
     }
 
-    UE_LOG(LogTemp, Warning, TEXT("Dificultad aplicada: %s | Multiplicador cantidad: %f | Multiplicador vida/da�o: %f"),
+    UE_LOG(LogTemp, Warning, TEXT("Dificultad aplicada: %s | Multiplicador cantidad: %f | Multiplicador vida/daño: %f"),
         *Difficulty, MultiplicadorCantidad, MultiplicadorDificultad);
 }

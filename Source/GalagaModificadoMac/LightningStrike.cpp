@@ -12,7 +12,7 @@ ALightningStrike::ALightningStrike()
 {
     PrimaryActorTick.bCanEverTick = false;
 
-    // Esfera de colisión para detectar al jugador
+    // Esfera de colisión para detectar al jugador (radio grande)
     CollisionSphere = CreateDefaultSubobject<USphereComponent>(TEXT("CollisionSphere"));
     RootComponent = CollisionSphere;
     CollisionSphere->SetSphereRadius(DamageRadius);
@@ -62,12 +62,6 @@ void ALightningStrike::BeginPlay()
     // Vincular solapamiento para dañar al jugador
     CollisionSphere->OnComponentBeginOverlap.AddDynamic(this, &ALightningStrike::OnOverlapBegin);
 
-    // Ignorar al jefe que nos ha creado, para que no bloquee el rayo
-    if (GetOwner())
-    {
-        CollisionSphere->MoveIgnoreActors.Add(GetOwner());
-    }
-
     // El rayo se autodestruye tras 2 segundos (efecto visual breve)
     SetLifeSpan(2.0f);
 }
@@ -77,7 +71,7 @@ void ALightningStrike::OnOverlapBegin(UPrimitiveComponent* OverlappedComp, AActo
 {
     if (!OtherActor || OtherActor == this) return;
 
-    // Solo dañar al jugador, nunca al jefe
+    // Dañar al jugador si lo toca
     AGalagaModificadoMacPawn* Jugador = Cast<AGalagaModificadoMacPawn>(OtherActor);
     if (Jugador)
     {
