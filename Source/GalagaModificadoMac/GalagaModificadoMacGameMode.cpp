@@ -1,8 +1,7 @@
-#include "GalagaModificadoMacGameMode.h"
+ï»¿#include "GalagaModificadoMacGameMode.h"
 #include "Engine/World.h"
 #include "Kismet/GameplayStatics.h"
 #include "GameFramework/PlayerController.h"
-#include "GameFramework/GameModeBase.h"
 #include "GalagaModificadoMacPawn.h"
 #include "UObject/ConstructorHelpers.h"
 #include "TimerManager.h"
@@ -20,12 +19,15 @@
 #include "Robot_RZ_D.h"
 #include "CeldasEnergia.h"
 #include "FabricaInvulnerable.h"
+#include "CuartelTerrestre.h"
 
 #include "FacadeGeneradorNiveles.h"
 #include "GalagaGameInstance.h"
 #include "ComponenteCombate.h"
 #include "Components/AudioComponent.h"
 #include "Sound/SoundBase.h"
+
+#include "LightningStrike.h"   // <--- AÃ‘ADIDO
 
 
 AGalagaModificadoMacGameMode::AGalagaModificadoMacGameMode()
@@ -99,6 +101,12 @@ void AGalagaModificadoMacGameMode::BeginPlay()
         GenerarEjercito(DatosNivel.EnemigosPorGenerar);
     }
 
+    // Tormenta elÃ©ctrica solo en niveles postâ€‘jefe (Ã­ndices 13 y 14)
+    if (NivelAIniciar == 13 || NivelAIniciar == 14)
+    {
+        IniciarTormenta();
+    }
+
     IniciarMusica();
 }
 
@@ -119,7 +127,7 @@ void AGalagaModificadoMacGameMode::ActualizarContadorTiempo()
 
 void AGalagaModificadoMacGameMode::IniciarDerrotaPorTiempo()
 {
-    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("¡TIEMPO AGOTADO! MISIÓN FALLIDA"));
+    GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, TEXT("Â¡TIEMPO AGOTADO! MISIÃ“N FALLIDA"));
 
     if (GetGameInstance())
     {
@@ -166,8 +174,9 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
     int32 L_CantMedico = EnemigosDelNivel.Contains(9) ? EnemigosDelNivel[9] : 0;
     int32 L_CantRobotRZ = EnemigosDelNivel.Contains(10) ? EnemigosDelNivel[10] : 0;
     int32 L_CantRobotRZD = EnemigosDelNivel.Contains(11) ? EnemigosDelNivel[11] : 0;
+    int32 L_CantCuarteles = EnemigosDelNivel.Contains(12) ? EnemigosDelNivel[12] : 0;
 
-    // --- Macro para enlazar el delegado de muerte a la función UFUNCTION ---
+    // --- Macro para enlazar el delegado de muerte a la funciÃ³n UFUNCTION ---
 #define BIND_DESTROY(EnemyPtr) \
         { \
             FScriptDelegate Delegate; \
@@ -175,7 +184,7 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
             EnemyPtr->OnDestroyed.Add(Delegate); \
         }
 
-    // Enemigos aéreos
+    // Enemigos aÃ©reos
     for (int32 i = 0; i < L_CantComando; i++)
     {
         FVector Pos = PosicionAerea + FVector(i * Separacion, 0.0f, 0.0f);
@@ -212,12 +221,12 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
     for (int32 i = 0; i < L_CantCMN; i++)
     {
         FVector Pos = PosicionAerea + FVector(i * Separacion, -1000.0f, 0.0f);
-        ANave_CMN* C = Mundo->SpawnActor<ANave_CMN>(ANave_CMN::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
-        if (C)
+        ANave_CMN* Cmn = Mundo->SpawnActor<ANave_CMN>(ANave_CMN::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
+        if (Cmn)
         {
-            ListaNavesCMN.Add(C);
-            AplicarDificultadEnemigo(C);
-            BIND_DESTROY(C);
+            ListaNavesCMN.Add(Cmn);
+            AplicarDificultadEnemigo(Cmn);
+            BIND_DESTROY(Cmn);
         }
     }
 
@@ -292,27 +301,20 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
     // Celdas (solo jefe)
     if (NivelAIniciar == 12)
     {
-        // Distancia mínima y máxima desde el centro (el jefe)
         float DistanciaMin = 5000.0f;
         float DistanciaMax = 10000.0f;
-        float AlturaSuelo = 1290.0f;   // Mantén la altura de tu escenario
-
-        // Tres ángulos base para separar las celdas (0°, 120°, 240°)
+        float AlturaSueloJefe = 1290.0f;
         TArray<float> AngulosBase = { 0.0f, 120.0f, 240.0f };
-
         for (int32 i = 0; i < 3; i++)
         {
-            // Ángulo con una pequeña variación aleatoria para que no queden perfectamente alineadas
             float Angulo = AngulosBase[i] + FMath::RandRange(-20.0f, 20.0f);
             float Distancia = FMath::RandRange(DistanciaMin, DistanciaMax);
-
             float Rad = FMath::DegreesToRadians(Angulo);
             FVector PosCelda = FVector(
                 Distancia * FMath::Cos(Rad),
                 Distancia * FMath::Sin(Rad),
-                AlturaSuelo
+                AlturaSueloJefe
             );
-
             Mundo->SpawnActor<ACeldaEnergia>(ACeldaEnergia::StaticClass(), PosCelda, FRotator::ZeroRotator, SpawnParams);
         }
     }
@@ -329,14 +331,83 @@ void AGalagaModificadoMacGameMode::GenerarEjercito(TMap<int32, int32> EnemigosDe
         }
     }
 
- #undef BIND_DESTROY
+    // --- Cuarteles (spawneo aleatorio) ---
+    if (L_CantCuarteles > 0)
+    {
+        SpawnCuarteles(L_CantCuarteles);
+    }
 
-    UE_LOG(LogTemp, Warning, TEXT("¡Ejército desplegado con dificultad aplicada!"));
+#undef BIND_DESTROY
+
+    UE_LOG(LogTemp, Warning, TEXT("Â¡EjÃ©rcito desplegado con dificultad aplicada!"));
+}
+
+void AGalagaModificadoMacGameMode::SpawnCuarteles(int32 Cantidad)
+{
+    UWorld* Mundo = GetWorld();
+    if (!Mundo) return;
+
+    FActorSpawnParameters SpawnParams;
+    SpawnParams.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButAlwaysSpawn;
+
+    FVector Centro(0.0f, 0.0f, 0.0f);   // punto de referencia horizontal
+    float RadioMax = 20000.0f;
+
+    for (int32 i = 0; i < Cantidad; i++)
+    {
+        FVector Pos;
+        int32 Intentos = 0;
+        const int32 MaxIntentos = 30;
+        bool bUbicacionValida = false;
+
+        while (Intentos < MaxIntentos && !bUbicacionValida)
+        {
+            // Punto aleatorio en el plano Xâ€‘Y
+            FVector Direccion = FMath::VRand();
+            Direccion.Z = 0.0f;
+            Pos = Centro + Direccion * FMath::FRandRange(1000.0f, RadioMax);
+
+            // Trazar hacia abajo para encontrar el suelo
+            FVector InicioTrace = Pos + FVector(0, 0, 1000.0f);   // empezar alto
+            FVector FinTrace = Pos - FVector(0, 0, 1000.0f);      // terminar bajo
+
+            FCollisionQueryParams QueryParams;
+            QueryParams.AddIgnoredActor(this);
+            FHitResult Hit;
+            bool bColision = Mundo->LineTraceSingleByChannel(Hit, InicioTrace, FinTrace,
+                ECC_WorldStatic, QueryParams);
+            if (bColision)
+            {
+                // Colocar el cuartel justo encima del suelo + ajuste de altura del modelo
+                Pos = Hit.Location + FVector(0, 0, 10.0f + AjusteAlturaModeloCuartel);
+                bUbicacionValida = true;
+            }
+            Intentos++;
+        }
+
+        if (!bUbicacionValida)
+        {
+            // Si no se encontrÃ³ suelo, usar altura base + ajuste de modelo
+            Pos = FMath::VRand() * FMath::FRandRange(1000.0f, RadioMax);
+            Pos.Z = AlturaBaseCuartel + AjusteAlturaModeloCuartel;
+        }
+
+        ACuartelTerrestre* Cuartel = Mundo->SpawnActor<ACuartelTerrestre>(
+            ACuartelTerrestre::StaticClass(), Pos, FRotator::ZeroRotator, SpawnParams);
+        if (Cuartel)
+        {
+            ListaCuarteles.Add(Cuartel);
+            AplicarDificultadEnemigo(Cuartel);
+
+            FScriptDelegate Delegate;
+            Delegate.BindUFunction(this, FName("OnEnemyDestroyed"));
+            Cuartel->OnDestroyed.Add(Delegate);
+        }
+    }
 }
 
 void AGalagaModificadoMacGameMode::OnEnemyDestroyed(AActor* DestroyedActor)
 {
-    // Intentar eliminar el actor de la lista correspondiente usando un Cast seguro
     if (ANaveComando* N = Cast<ANaveComando>(DestroyedActor))
         ListaNavesComando.Remove(N);
     else if (ATorreta* T = Cast<ATorreta>(DestroyedActor))
@@ -347,8 +418,8 @@ void AGalagaModificadoMacGameMode::OnEnemyDestroyed(AActor* DestroyedActor)
         ListaNavesLider.Remove(NL);
     else if (ANaveKamikase* K = Cast<ANaveKamikase>(DestroyedActor))
         ListaNavesKamikase.Remove(K);
-    else if (ANave_CMN* C = Cast<ANave_CMN>(DestroyedActor))
-        ListaNavesCMN.Remove(C);
+    else if (ANave_CMN* Cmn = Cast<ANave_CMN>(DestroyedActor))
+        ListaNavesCMN.Remove(Cmn);
     else if (ARobotFrancotirador* F = Cast<ARobotFrancotirador>(DestroyedActor))
         ListaFrancotiradores.Remove(F);
     else if (ARobot_Medico* M = Cast<ARobot_Medico>(DestroyedActor))
@@ -361,6 +432,9 @@ void AGalagaModificadoMacGameMode::OnEnemyDestroyed(AActor* DestroyedActor)
         ListaBossEstaticos.Remove(B);
     else if (AFabricaInvulnerable* FInv = Cast<AFabricaInvulnerable>(DestroyedActor))
         ListaFabricas.Remove(FInv);
+    else if (ACuartelTerrestre* Cuartel = Cast<ACuartelTerrestre>(DestroyedActor))
+        ListaCuarteles.Remove(Cuartel);
+
     VerificarCondicionVictoria();
 }
 
@@ -377,13 +451,13 @@ void AGalagaModificadoMacGameMode::VerificarCondicionVictoria()
         ListaMedicos.Num() +
         ListaRobotsRZ.Num() +
         ListaRobotsRZD.Num() +
-        ListaBossEstaticos.Num();
+        ListaBossEstaticos.Num() +
+        ListaCuarteles.Num();
 
-   
     if (TotalEnemigosVivos == 0)
     {
-        // Limpiamos el reloj para que no te dé derrota si ya ganaste
         GetWorldTimerManager().ClearTimer(TimerHandle_Reloj);
+        DetenerTormenta();   // <--- Detener la tormenta al ganar
 
         FTimerHandle HandleMudar;
         GetWorldTimerManager().SetTimer(HandleMudar, [this]()
@@ -394,24 +468,24 @@ void AGalagaModificadoMacGameMode::VerificarCondicionVictoria()
                     if (GI)
                     {
                         int32 SiguienteNivel = GI->SelectedLevelIndex + 1;
-                        if (SiguienteNivel < 15)
+                        if (SiguienteNivel < 15)   // Ahora hay 15 niveles (0-14)
                         {
                             GI->SetSelectedLevel(SiguienteNivel);
                             GI->LaunchGame();
                         }
                         else
                         {
-                            GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan, TEXT("¡ENHORABUENA! HAS PASADO TODA LA CAMPAÑA"));
+                            GEngine->AddOnScreenDebugMessage(-1, 10.f, FColor::Cyan, TEXT("Â¡ENHORABUENA! HAS PASADO TODA LA CAMPAÃ‘A"));
                             GI->ReturnToMainMenu();
                         }
                     }
                 }
             }, 3.0f, false);
     }
-} 
-   
+}
 
-// ========== MÚSICA ==========
+
+// ========== MÃšSICA ==========
 void AGalagaModificadoMacGameMode::IniciarMusica()
 {
     if (!MusicPlayer || !GerenteDeNiveles) return;
@@ -469,4 +543,40 @@ void AGalagaModificadoMacGameMode::CambiarMusicaJefe(int32 Fase)
         MusicPlayer->FadeIn(0.5f);
         MusicPlayer->Play();
     }
+}
+
+// ========== TORMENTA DE RELÃMPAGOS ==========
+void AGalagaModificadoMacGameMode::IniciarTormenta()
+{
+    UWorld* Mundo = GetWorld();
+    if (!Mundo) return;
+
+    // Spawn inmediato y luego programar repetitivo
+    SpawnRelampago();
+    Mundo->GetTimerManager().SetTimer(TimerHandle_Relampagos, this,
+        &AGalagaModificadoMacGameMode::SpawnRelampago, IntervaloRelampagos, true);
+}
+
+void AGalagaModificadoMacGameMode::SpawnRelampago()
+{
+    UWorld* Mundo = GetWorld();
+    if (!Mundo) return;
+
+    // PosiciÃ³n aleatoria en el plano XY
+    FVector Direccion = FMath::VRand();
+    Direccion.Z = 0.0f;
+    FVector Pos = Direccion * FMath::FRandRange(1000.0f, RadioTormenta);
+    Pos.Z = AlturaRelampagos;   // CaerÃ¡n hacia el suelo
+
+    FActorSpawnParameters Params;
+    Params.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+    Mundo->SpawnActor<ALightningStrike>(ALightningStrike::StaticClass(), Pos, FRotator::ZeroRotator, Params);
+    // El rayo se autodestruye solo (SetLifeSpan en su BeginPlay)
+}
+
+void AGalagaModificadoMacGameMode::DetenerTormenta()
+{
+    if (GetWorld())
+        GetWorld()->GetTimerManager().ClearTimer(TimerHandle_Relampagos);
 }

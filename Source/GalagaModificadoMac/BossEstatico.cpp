@@ -1,4 +1,4 @@
-#include "BossEstatico.h"
+ï»¿#include "BossEstatico.h"
 #include "Components/StaticMeshComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Kismet/GameplayStatics.h"
@@ -66,7 +66,7 @@ ABossEstatico::ABossEstatico()
     if (EscudoAsset.Succeeded()) EscudoEffect = EscudoAsset.Object;
 
     static ConstructorHelpers::FObjectFinder<UParticleSystem> ExplosionEscudoAsset(
-        TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Destruction/P_Destruction_Electric.P_Destruction_Electric")
+        TEXT("/Game/Realistic_Starter_VFX_Pack_Vol2/Particles/Destruction/P_Destruction_Electric")
     );
     if (ExplosionEscudoAsset.Succeeded()) ExplosionEscudo = ExplosionEscudoAsset.Object;
 
@@ -115,7 +115,7 @@ void ABossEstatico::BeginPlay()
         EscudoPSC->SetTemplate(EscudoEffect);
         EscudoPSC->SetWorldScale3D(FVector(EscudoEffectScale, EscudoEffectScale, EscudoEffectScale * 1.0f));
         float HalfHeight = CapsulaColision->GetScaledCapsuleHalfHeight();
-        float OffsetDesdeSuelo = -1850.0f;
+        float OffsetDesdeSuelo = -1200.0f;
         EscudoPSC->SetRelativeLocation(FVector(0.0f, 0.0f, -HalfHeight + OffsetDesdeSuelo));
         EscudoPSC->Activate(true);
         EscudoPSC->SetCullDistance(0.0f);
@@ -174,7 +174,6 @@ float ABossEstatico::TakeDamage(float DamageAmount, FDamageEvent const& DamageEv
         MultiplicadorVelocidad = 1.5f;
         TiempoAcumuladoCambio = 0.0f;
 
-        // Iniciar la lluvia de proyectiles (solo una vez, al entrar en furia por vida)
         IniciarLluvia();
     }
 
@@ -186,7 +185,6 @@ void ABossEstatico::NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio)
 {
     CeldasActivas--;
 
-    // --- Spawn de un Cuartel Invulnerable a ras de suelo ---
     if (AGalagaModificadoMacGameMode* GM = GetWorld()->GetAuthGameMode<AGalagaModificadoMacGameMode>())
     {
         if (GM->ListaFabricas.Num() < 3)
@@ -214,12 +212,11 @@ void ABossEstatico::NotificarCeldaDestruida(ACeldaEnergia* CeldaQueMurio)
             {
                 GM->ListaFabricas.Add(Cuartel);
                 GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Orange,
-                    FString::Printf(TEXT("¡Cuartel invulnerable activado! (%d/3)"), GM->ListaFabricas.Num()));
+                    FString::Printf(TEXT("Â¡Cuartel invulnerable activado! (%d/3)"), GM->ListaFabricas.Num()));
             }
         }
     }
 
-    // --- Lógica original de cambio de estrategia, escudo, música ---
     if (!bFuriaCeldas)
     {
         if (CeldasActivas == 2) CambiarEstrategia(new FAtaqueOndaStrategy());
@@ -285,10 +282,15 @@ void ABossEstatico::Destroyed()
     if (SoundExplosionMuerte)
         UGameplayStatics::PlaySoundAtLocation(this, SoundExplosionMuerte, GetActorLocation());
 
+    // --- Notificar victoria al GameMode ---
+    if (AGalagaModificadoMacGameMode* GM = Cast<AGalagaModificadoMacGameMode>(GetWorld()->GetAuthGameMode()))
+    {
+        GM->BossDerrotado();
+    }
+
     Super::Destroyed();
 }
 
-// ========== RISA PERIÓDICA ==========
 void ABossEstatico::StartLaugh()
 {
     if (!SoundRisa || IntervaloRisa <= 0.0f) return;
@@ -311,10 +313,8 @@ void ABossEstatico::StopLaugh()
     if (AudioComponent && AudioComponent->IsPlaying()) AudioComponent->Stop();
 }
 
-// ========== LLUVIA DE PROYECTILES (furia por vida) ==========
 void ABossEstatico::IniciarLluvia()
 {
-    // Solo si la furia por vida está activa y el jefe no está siendo destruido
     if (!bFuriaVida || IntervaloLluvia <= 0.0f || IsPendingKill()) return;
 
     EjecutarLluvia();
@@ -326,7 +326,6 @@ void ABossEstatico::IniciarLluvia()
 
 void ABossEstatico::EjecutarLluvia()
 {
-    // No ejecutar si el jefe ya ha muerto o está siendo destruido
     if (!bFuriaVida || IsPendingKill() || !GetWorld()) return;
 
     BossAttackBuilder Builder(GetWorld(), this);

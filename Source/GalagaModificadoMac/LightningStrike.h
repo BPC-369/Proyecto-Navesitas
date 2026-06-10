@@ -21,17 +21,17 @@ protected:
     virtual void BeginPlay() override;
 
 public:
-    // Radio de daño al jugador
+    // Radio de daño al jugador (más grande para abarcar más área)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
-        float DamageRadius = 400.0f;
+        float DamageRadius = 800.0f;
 
     // Daño al jugador
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
         float DamageAmount = 100.0f;
 
-    // Escala del efecto Niagara (por defecto enorme, igual o mayor que el jefe)
+    // Escala del efecto Niagara (ahora 30x para que sea colosal)
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Lightning")
-        FVector EffectScale = FVector(10.0f, 10.0f, 10.0f);
+        FVector EffectScale = FVector(100.0f, 100.0f, 500.0f);
 
 private:
     UPROPERTY(VisibleAnywhere)

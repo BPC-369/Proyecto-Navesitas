@@ -1,5 +1,3 @@
-// Copyright Epic Games, Inc. All Rights Reserve
-
 #include "GalagaModificadoMacProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 #include "UObject/ConstructorHelpers.h"
@@ -9,46 +7,32 @@
 
 AGalagaModificadoMacProjectile::AGalagaModificadoMacProjectile()
 {
-	InitialLifeSpan = 8.0f; // despues de 3 segs la bala se destruye si no ha chocado con nada
-	DanoProyectil = 25.0f; // El daño que tendra la bala 
+	InitialLifeSpan = 8.0f;
+	DanoProyectil = 25.0f;
 	static ConstructorHelpers::FObjectFinder<UStaticMesh> ProjectileMeshAsset(TEXT("/Game/TwinStick/Meshes/TwinStickProjectile.TwinStickProjectile"));
 
 	ProjectileMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("ProjectileMesh0"));
-	ProjectileMesh->SetStaticMesh(ProjectileMeshAsset.Object); // aplicamos la malla a la bala
+	ProjectileMesh->SetStaticMesh(ProjectileMeshAsset.Object);
 	ProjectileMesh->SetupAttachment(RootComponent);
-	ProjectileMesh->BodyInstance.SetCollisionProfileName("Projectile"); // hacemos que la bala pueda chocar con todo menos el que la dispara
-	ProjectileMesh->OnComponentHit.AddDynamic(this, &AGalagaModificadoMacProjectile::OnHit); // cada vez que la bala choque con algo se llamara a la funcion OnHit para aplicar dano y fisicas
+	ProjectileMesh->BodyInstance.SetCollisionProfileName("Projectile");
+	ProjectileMesh->OnComponentHit.AddDynamic(this, &AGalagaModificadoMacProjectile::OnHit);
 	RootComponent = ProjectileMesh;
 
-	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement0"));// Creamos el componente de movimiento para la bala
+	ProjectileMovement = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement0"));
 	ProjectileMovement->UpdatedComponent = ProjectileMesh;
-	ProjectileMovement->InitialSpeed = 3000.f;// La velocidad inicial de la bala
-	ProjectileMovement->MaxSpeed = 3000.f;// La velocidad Maxima de la bala
-	ProjectileMovement->bRotationFollowsVelocity = true; // La bala se orienta hacia la dirección a la que va
-	ProjectileMovement->bShouldBounce = false; // La bala no rebota al chocar con algo
-	ProjectileMovement->ProjectileGravityScale = 0.f; // No gravity
-}
-
-void AGalagaModificadoMacProjectile::Init(FVector LaunchDirection)
-{
-	// Fijamos la velocidad para que vuele recto exactamente hacia LaunchDirection
-	if (ProjectileMovement)
-	{
-		ProjectileMovement->Velocity = LaunchDirection.GetSafeNormal() * ProjectileMovement->InitialSpeed;
-	}
+	ProjectileMovement->InitialSpeed = 3000.f;
+	ProjectileMovement->MaxSpeed = 3000.f;
+	ProjectileMovement->bRotationFollowsVelocity = true;
+	ProjectileMovement->bShouldBounce = false;
+	ProjectileMovement->ProjectileGravityScale = 0.f;
 }
 
 void AGalagaModificadoMacProjectile::OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
-	// 1. Verificamos que el impacto sea contra un actor válido, y que NO sea la propia Torreta/Padre
 	if ((OtherActor != nullptr) && (OtherActor != this) && (OtherComp != nullptr) && (OtherActor != GetOwner()))
 	{
-		// 2. Aplicamos daño
 		UGameplayStatics::ApplyDamage(OtherActor, DanoProyectil, nullptr, this, UDamageType::StaticClass());
-
 		UE_LOG(LogTemp, Warning, TEXT("Bala impacto en: %s"), *OtherActor->GetName());
-
-		// 3. ¡SOLO DESTRUIMOS LA BALA SI REALMENTE GOLPEÓ ALGO VÁLIDO!
 		Destroy();
 	}
 }

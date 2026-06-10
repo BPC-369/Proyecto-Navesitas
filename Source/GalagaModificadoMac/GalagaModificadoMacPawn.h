@@ -107,7 +107,7 @@ class AGalagaModificadoMacPawn : public ACharacter
 {
     GENERATED_BODY()
 
-    UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+        UPROPERTY(Category = Mesh, VisibleDefaultsOnly, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
         class UStaticMeshComponent* ShipMeshComponent;
 
     UPROPERTY(Category = Camera, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
@@ -130,6 +130,11 @@ public:
 
     UPROPERTY(Category = Gameplay, EditAnywhere, BlueprintReadWrite)
         float MoveSpeed;
+
+    // Si es true, dispara hacia el centro de la pantalla (cámara).
+// Si es false, dispara hacia adelante del actor (recto, sin caída).
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disparo")
+        bool bDisparoHaciaCamara = false;
 
     // Inclinación visual de la nave
     UPROPERTY(EditAnywhere, Category = "Movimiento")
@@ -214,6 +219,9 @@ public:
 
     UFUNCTION(BlueprintImplementableEvent, Category = "Muerte")
         void OnDeathEvent();
+    // Ajuste de altura de los cañones (valores positivos bajan los proyectiles)
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Disparo")
+        float AlturaCaniones = 100.0f;   // 100 unidades por defecto, modifícalo si es necesario
 
     UFUNCTION(BlueprintCallable, Category = "Combate")
         float GetVidaActual() const;
